@@ -839,6 +839,7 @@ __export(spec_exports, {
 /*! ============================================================================ */
 /*! spec.mjs — every number transcribed from rb7_math_spec.md (mm, deg unless stated) */
 /*! Tags: [BRIEF] [DERIVED] [EST] [CHOICE] [REG-RECALL] [REG-CHECK] as in the spec. */
+/*! CORR-n comments mark the values changed by RB7_SPEC_CORRECTIONS.md (2026-10-15). */
 /*! ============================================================================ */
 var K = {
   L: 3300,
@@ -896,14 +897,16 @@ var FW = {
   c1: { x: [620, 840], LE: [830, 215], C: 100, alpha: 10, code: "4409" },
   c2: { x: [620, 840], LE: [741.5, 244.4], C: 70, alpha: 18, code: "4409" }
 };
-var FW_PLATE = { p0: [840, 985], p1: [900, 440], thick: 10, y0: 75, y1: 275, yTE: 140, sChamfer: 480 };
+var FW_PLATE = { p0: [850, 985], p1: [850, 400], thick: 10, y0: 75, y1: 275, yTE: 140, sChamfer: 516.7 };
 var FW_FOOT = { y0: 75, y1: 80, width: 60, z0: 700, z1: 985 };
 var FW_PYLON = { x0: 75, x1: 85, z0: 800, z1: 1e3 };
 var FW_STRUT = { xs: [620, 835], thick: 6 };
 /*! ---- §5.3 cover ---------------------------------------------------------- */
 var COVER_ST = [
-  { z: -1250, a: 150, ys: 700, yb: 645, yt: 950, n: 2.5 },
-  { z: -1500, a: 230, ys: 660, yb: 635, yt: 948, n: 3 },
+  { z: -1250, a: 150, ys: 700, yb: 659, yt: 950, n: 2.5 },
+  // CORR-3 yb 645 -> 659
+  { z: -1500, a: 230, ys: 660, yb: 651, yt: 948, n: 3 },
+  // CORR-3 yb 635 -> 651
   { z: -2e3, a: 270, ys: 560, yb: 530, yt: 860, n: 3.5 },
   { z: -2300, a: 250, ys: 515, yb: 490, yt: 790, n: 3.5 },
   { z: -2550, a: 225, ys: 465, yb: 440, yt: 700, n: 3.5 },
@@ -961,35 +964,41 @@ var EXH = {
 /*! ---- §5.8 front suspension (xp) ----------------------------------------- */
 var FSUS = {
   WC: [725, 304.84, -10.37],
-  UBJ: [625, 454.84, -30],
+  UBJ: [625, 424.84, -30],
   LBJ: [645, 232, -5],
-  UF: [200, 470, 200],
-  UR: [240, 475, -250],
+  // CORR-5 upper wishbone -30 in y
+  UF: [200, 440, 200],
+  UR: [240, 445, -250],
   LF: [175, 265, 170],
   LR: [245, 265, -270],
   PRo: [628, 248, -32],
   PRi: [110, 610, -80],
-  TRo: [630, 399.8, 94.6],
+  TRo: [630, 394.8, 89.6],
   TRi: [170, 410, 110],
+  // CORR-5 TRo -5,-5
   wb: { C: 60, tau: 20 },
   push: { C: 40, tau: 16 },
   track: { C: 36, tau: 14 },
-  slot: { a: [197, 561, -73.5], b: [179, 610, -80], r: 25 },
-  hole: { c: [183, 410, 110], half: 15 }
+  slot: { a: [199.7, 547.3, -71.7], b: [179.5, 610, -80], r: 26 },
+  // CORR-4
+  hole: { c: [183, 410, 110], hz: 25, hy: 15 }
+  // CORR-4 50 (z) x 30 (y)
 };
 /*! ---- §5.9 rear suspension (xp) ------------------------------------------ */
 var RSUS = {
   WC: [700, 201.18, -3308.74],
-  UBJ: [610, 391.18, -3308.74],
+  UBJ: [610, 326.18, -3308.74],
   LBJ: [620, 121.18, -3298.74],
-  UF: [140, 400, -3050],
-  UR: [130, 405, -3420],
+  // CORR-5 upper wishbone + PLo -65 in y
+  UF: [140, 335, -3050],
+  UR: [130, 340, -3420],
   LF: [135, 150, -2950],
   LR: [125, 150, -3480],
-  PLo: [600, 366.18, -3318.74],
+  PLo: [600, 301.18, -3318.74],
   PLi: [115, 105, -3060],
-  TLo: [615, 141.18, -3428.74],
-  TLi: [125, 165, -3500],
+  TLo: [615, 151.18, -3413.74],
+  TLi: [125, 165, -3540],
+  // CORR-5 TLo, TLi
   wb: { C: 60, tau: 20 },
   pull: { C: 40, tau: 16 },
   toe: { C: 36, tau: 14 }
@@ -997,8 +1006,10 @@ var RSUS = {
 var GEARBOX = { x: [-120, 120], y: [90, 310], z: [-3550, -2550] };
 /*! ---- §5.10 wheels -------------------------------------------------------- */
 var WHEEL = {
-  front: { W: 345, rimW: 305, discDx: -60 },
-  rear: { W: 375, rimW: 343, discDx: -55 },
+  front: { W: 345, rimW: 305, discDx: -50 },
+  // CORR-5 -60 -> -50
+  rear: { W: 375, rimW: 343, discDx: -40 },
+  // CORR-5 -55 -> -40
   barrelIn: 160,
   barrelOut: 165,
   flangeR: 177,
@@ -1028,14 +1039,16 @@ var MASS = {
   radiator_internals: { m: 6, com: [440, 330, -1720] },
   floor_and_blown_diffuser: { m: 14, com: [0, 55, -1975] },
   exhaust_system: { m: 2.5, com: [337.5, 157.5, -2665.6] },
-  front_suspension_pushrod: { m: 2.6, com: [411, 376, -18] },
-  rear_suspension_pullrod: { m: 2.9, com: [370, 248, -3270] },
+  front_suspension_pushrod: { m: 2.6, com: [411, 365, -18] },
+  // CORR-5 re-derived
+  rear_suspension_pullrod: { m: 2.9, com: [370, 220, -3271] },
+  // CORR-5 re-derived
   wheel_front: { m: 17, com: [698.2, 304.84, -10.37] },
   wheel_rear: { m: 20, com: [673.8, 201.18, -3308.74] },
   rear_wing_DRS: { m: 7, com: [0, 698, -3686] },
   reference_plank: { m: 11.4, com: [0, -5, -1823.1] }
 };
-var MODELLED_TOTAL = { m: 216.9, com: [0, 292.6, -1486.3] };
+var MODELLED_TOTAL = { m: 216.9, com: [0, 291.6, -1486.3] };
 /*! ---- §7.2 explosion table: d_W in metres (xp sign convention), window [t0,t1] ---- */
 var EXPLODE = [
   { body: "engine_cover_and_sharkfin", dW: [0, 1.2, 0], win: [0, 0.16], stage: "A1" },
@@ -1072,14 +1085,18 @@ var GROUND_LIFT = 1.2;
 /*! ---- §5.x bounding boxes stated by the spec ([minx,miny,minz,maxx,maxy,maxz], mm; sided bodies = _xp) ---- */
 var BBOX_SPEC = {
   monocoque_survival_cell: [-300, 60, -2e3, 300, 665, 350],
-  nose_and_front_wing_cascade: [-900, 75, 350, 900, 640, 1175],
+  nose_and_front_wing_cascade: [-850, 75, 350, 850, 640, 1175],
+  // CORR-2
   engine_cover_and_sharkfin: [-270, 320, -3450, 270, 950, -1250],
   sidepod_pods: [180, 75, -2850, 680, 580, -1150],
   radiator_internals: [281.7, 178.1, -2030.3, 598.3, 481.9, -1409.7],
-  floor_and_blown_diffuser: [-700, 0, -3658.74, 700, 133, -340.37],
+  floor_and_blown_diffuser: [-700, 0, -3658.74, 700, 125, -340.37],
+  // CORR-1
   exhaust_system: [96, 69, -2968.3, 625, 235, -2254.3],
-  front_suspension_pushrod: [90, 222, -300, 655, 620, 230],
-  rear_suspension_pullrod: [95, 95, -3520, 630, 415, -2920],
+  front_suspension_pushrod: [105, 222, -295, 662, 617, 227],
+  // CORR-5
+  rear_suspension_pullrod: [105, 97, -3558, 638, 350, -2926],
+  // CORR-5
   wheel_front: [552.5, -25.16, -340.37, 897.5, 634.84, 319.63],
   wheel_rear: [512.5, -128.82, -3638.74, 887.5, 531.18, -2978.74],
   rear_wing_DRS: [-375, 330, -3890, 375, 950, -3490],
@@ -1164,7 +1181,7 @@ function buildMonocoque() {
     return Math.pow(Math.abs((z - C.zc) / C.hz), C.p) + Math.pow(Math.abs(x / C.hx), C.p) - 1;
   });
   clipTriangles(m, (x, y, z) => Math.abs(x) > 100 && y > 380 && y < 700 && z > -150 && z < 0 ? segDist([Math.abs(x), y, z], sl.a, sl.b) - sl.r : 1);
-  clipTriangles(m, (x, y, z) => Math.abs(x) > 120 ? Math.max(Math.abs(y - ho.c[1]) - ho.half, Math.abs(z - ho.c[2]) - ho.half) : 1);
+  clipTriangles(m, (x, y, z) => Math.abs(x) > 120 ? Math.max(Math.abs(y - ho.c[1]) - ho.hy, Math.abs(z - ho.c[2]) - ho.hz) : 1);
   note("N-MONO-OPEN", "\xA75.1/\xA75.8", "Cockpit opening, pushrod slots and track-rod holes are cut exactly (triangles clipped along the stated implicit boundary); the skin is locally refined (4 mm rings/columns) only around the two rod openings. N_phi = 64 elsewhere.");
   return [{ name: "skin", mesh: m, mat: "paint", open: true }];
 }
@@ -1232,7 +1249,7 @@ function buildNoseAndWing() {
     parts.push({ name: `fw_${key2}_xp`, mesh: xp, mat: "paint" });
     parts.push({ name: `fw_${key2}_xn`, mesh: mirrorPart(xp, `fw_${key2}_xn`), mat: "paint" });
   }
-  note("A-FW-TRIM", "\xA75.2 / R11", "Elements are extruded |x| 250..840 (cascades 620..840) and trimmed at the slanted endplate inner face, i.e. x_end(z)=min(840, x_inner(z)). Aft of z\u2248894 the inner face lies outboard of 840, so element tips stop short of the endplate (gap grows to ~50 mm at the endplate TE). Extending the elements to the plate would break R11 (|x|<=840). Not resolved by me.");
+  note("A-FW-TRIM", "\xA75.2 / R11", "Elements are extruded |x| 250..840 (cascades 620..840); x_end(z)=min(840, x_inner(z)). The endplate is now parallel to Z with its inner face at x=840 (spec correction 2), so every element tip meets the plate along its whole chord.");
   /*! ---- endplates ------------------------------------------------------------ */
   const P = FW_PLATE;
   const epOutline = [[0, P.y0], [0, P.y1], [planN.L, P.y1], [planN.L, P.yTE], [P.sChamfer, P.y0]];
@@ -1419,8 +1436,23 @@ function buildPod() {
     m.quad(o(r + 1, nc - 1), o(r, nc - 1), inn(r, nc - 1), inn(r + 1, nc - 1));
   }
   m.orientManifold();
+  /*! CORR-6 F3 foil: lower lobe (phi in [-pi/2, 0]) for z in [-2300, -2750], 0.5 mm outward of the outer surface; owned by the pod */
+  const f3 = new Mesh("foil_F3");
+  const zs3 = ringZs([-2300, -2550, -2750], 10), n3 = 16;
+  const f3i = addGrid(f3, zs3.length, n3 + 1, (r, c) => {
+    const z = zs3[r], ph = -Math.PI / 2 + Math.PI / 2 * c / n3;
+    const phc = clamp(ph, -Math.PI / 2 + 1e-3, -1e-3);
+    const P = podPoint(z, ph);
+    const dPp = v3.sub(podPoint(z, phc + 1e-3), podPoint(z, phc - 1e-3));
+    const dPz = v3.sub(podPoint(z + 1, phc), podPoint(z - 1, phc));
+    let n = v3.norm(v3.cross(dPp, dPz));
+    const s = podSection(z);
+    if (v3.dot(n, v3.sub(P, [s.xi, s.Ym, z])) < 0) n = v3.mul(n, -1);
+    return v3.madd(P, n, 0.5);
+  });
+  stitchGrid(f3, f3i, zs3.length, n3 + 1, {});
   note("N-POD-WALL", "\xA75.4", 'Pod wall: outer surface = stated C-shell; inner surface offset 3 mm along the surface normal; the four open edges (inlet, tail, top, bottom) are closed with strips. "Lip radius 8" on a 3 mm wall is not modelled as a separate fillet (no consistent geometry given) \u2014 asked in handoff.');
-  return [{ name: "shell", mesh: m, mat: "paint", decal: "pod" }];
+  return [{ name: "shell", mesh: m, mat: "paint", decal: "pod" }, { name: "foil_F3", mesh: f3, mat: "gold", open: true }];
 }
 /*! --------------------------------------------------------------------------- */
 /*! §5.5 radiator internals */
@@ -1451,7 +1483,7 @@ function diffuserRoofY(x, z) {
   const s = clamp((K2.Z_RA - z) / FLOOR.diffLen, 0, 1);
   const ax = Math.abs(x);
   const y0 = ax <= 150 ? 0 : 50;
-  return y0 + (K2.HD - y0) * rho(s);
+  return y0 + (K2.HD - FLOOR.roofThick - y0) * rho(s);
 }
 function heightFieldSlab(xs, zs, yFn, thick, name) {
   const m = new Mesh(name);
@@ -1547,7 +1579,7 @@ function buildFloor() {
   parts.push({ name: "sidewall_xp", mesh: sw, mat: "carbon" });
   parts.push({ name: "sidewall_xn", mesh: mirrorPart(sw, "sidewall_xn"), mat: "carbon" });
   note("N-FLOOR-THICK", "\xA75.6", "Reference-strip wall thickness is not given; 6 mm (the fence thickness) used, centred on |x|=150. Fences are centred on |x|=150/320; the outer sidewall sits inside the |x|<=490 limit (x 484..490).");
-  note("A-DIFF-TOP", "\xA75.6 / R9", 'Roof panel is 8 mm thick, "offset upward (top = y_r + 8)" and the spec bbox lists y max 133, while R9 / audit correction #1 cap the diffuser surface at 125. Built exactly as written: lower (airflow) surface y_r<=125 (assert 4 as written passes), panel top reaches 133.');
+  note("A-DIFF-TOP", "\xA75.6 / R9", "R9 caps the diffuser panel top (spec correction 1): airflow surface y_r = y0 + (H_D \u2212 t_D \u2212 y0)\xB7\u03C1(s) reaches 117, the 8 mm panel offset upward tops out at exactly 125 at the exit.");
   /*! gold foil F1 band + F2 fan (raster patches 0.5 above the panel top) */
   const foilY = F.stepY1 + F.foil.lift;
   const proj = exhaustPlanProjection(60);
@@ -1575,7 +1607,7 @@ function buildFloor() {
   parts.push({ name: "foil_F1_xn", mesh: mirrorPart(f1, "foil_F1_xn"), mat: "gold", open: true });
   parts.push({ name: "foil_F2_xp", mesh: f22, mat: "gold", open: true });
   parts.push({ name: "foil_F2_xn", mesh: mirrorPart(f22, "foil_F2_xn"), mat: "gold", open: true });
-  note("A-FOIL-F3", "\xA75.6", 'F3 ("pod underside" gold foil) is referred to as belonging to \xA75.4 but \xA75.4 gives no definition or extent. NOT built (not invented). F1, F2 (\xA75.6) and F4 (\xA75.7) are built.');
+  note("A-FOIL-F3", "\xA75.4 / \xA75.6", "F1, F2 (\xA75.6) are floor-owned; F3 is built with the pod (\xA75.4, spec correction 6: lower lobe, z \u22122300..\u22122750, 0.5 mm outward); F4 with the exhaust (\xA75.7).");
   note("N-FOIL-RASTER", "\xA75.6", "Foil patches F1/F2 are built as a 2 mm raster of the stated plan regions clipped to the outline (stair-stepped edge, 2 mm).");
   return parts;
 }
@@ -1728,7 +1760,7 @@ function buildWheel(kind) {
     const arm = axisBox(x0, x0 + 20, node[1] - 10, node[1] + 10, Math.min(zEdge, zFar), Math.max(zEdge, zFar), "steer_arm");
     parts.push({ name: isF ? "steering_arm" : "toe_arm", mesh: arm, mat: "susp" });
   }
-  note("N-WHEEL", "\xA75.10", "Not dimensioned in the spec and therefore assumed (all intra-body, visual only): rim flange axial thickness 5 mm (= barrel wall), spoke thickness 10 mm, steering/toe arm 20x20 mm, no hub body. Upright slab built as the parallelepiped (kingpin axis x Z-width x normal) exactly as described; caliper block built literally with r in [95,165] although the barrel inner radius is 160.");
+  note("N-WHEEL", "\xA75.10", "Not dimensioned in the spec and therefore assumed (all intra-body, visual only): rim flange axial thickness 5 mm (= barrel wall), spoke thickness 10 mm, steering/toe arm 20x20 mm, no hub body. Upright slab built as the parallelepiped (kingpin axis x Z-width x normal) exactly as described; caliper block built literally with r in [95,165] although the barrel inner radius is 160 (accepted as proxy geometry: intra-body, hidden inside the tyre \u2014 spec correction C8).");
   return parts;
 }
 /*! --------------------------------------------------------------------------- */
@@ -2092,15 +2124,15 @@ function mergeParts(body, names) {
   return g;
 }
 /*! --------------------------------------------------------------------------- */
-/*! Designed contacts (documented interpretation — NOT in the spec; see handoff) */
+/*! Designed contacts (§8.10 of the spec, confirmed in RB7_SPEC_CORRECTIONS.md §7) */
 /*! --------------------------------------------------------------------------- */
 var DESIGNED_CONTACT = [
   { a: "monocoque_survival_cell", b: "nose_and_front_wing_cascade", parts: [["skin", "nose_cone"]], tol: 1, why: '\xA75.2: nose rear station = monocoque front station ("seamless joint"); bodies share the z=350 plane' },
   { a: "engine_cover_and_sharkfin", b: "sidepod_pods", sided: true, parts: [["canopy", "shell"]], tol: 1, why: "\xA75.3 / \xA77.3: cover skirts sit on the pod top inner edges (skirt = pod top inner edge)" },
   { a: "monocoque_survival_cell", b: "floor_and_blown_diffuser", parts: [["skin", "strip_top_plate"]], tol: 1, why: "\xA75.6: monocoque underside closes the reference-strip box (y=60)" },
   { a: "floor_and_blown_diffuser", b: "reference_plank", parts: [["strip_wall_*", "plank"], ["diffuser_roof_*", "plank"], ["fence_150_*", "plank"], ["strip_top_plate", "plank"]], tol: 1, why: "\xA75.6 / \xA75.12: reference strip underside y=0 sits on the plank top" },
-  { a: "front_suspension_pushrod", b: "wheel_front", sided: true, parts: [["uw_front_leg", "upright"], ["uw_rear_leg", "upright"], ["lw_front_leg", "upright"], ["lw_rear_leg", "upright"], ["trackrod", "steering_arm"]], tol: 30, why: "\xA75.10: members end at the ball joints carried by the upright (end caps overlap the slab by up to ~half a chord)" },
-  { a: "rear_suspension_pullrod", b: "wheel_rear", sided: true, parts: [["uw_front_leg", "upright"], ["uw_rear_leg", "upright"], ["lw_front_leg", "upright"], ["lw_rear_leg", "upright"], ["toelink", "toe_arm"]], tol: 30, why: "\xA75.10: members end at the ball joints carried by the upright" }
+  { a: "front_suspension_pushrod", b: "wheel_front", sided: true, parts: [["uw_front_leg", "upright"], ["uw_rear_leg", "upright"], ["lw_front_leg", "upright"], ["lw_rear_leg", "upright"], ["trackrod", "steering_arm"]], tol: 12, why: "\xA75.10: members end at the ball joints carried by the upright; flat end caps overlap the slab, contact must end within 12 mm of relative travel (bound 30\xB7max|m\u0302x| \u2212 5 = 9.9)" },
+  { a: "rear_suspension_pullrod", b: "wheel_rear", sided: true, parts: [["uw_front_leg", "upright"], ["uw_rear_leg", "upright"], ["lw_front_leg", "upright"], ["lw_rear_leg", "upright"], ["toelink", "toe_arm"]], tol: 12, why: "\xA75.10: members end at the ball joints carried by the upright; contact must end within 12 mm of relative travel" }
 ];
 var partMatch = (pat, name) => pat.endsWith("*") ? name.startsWith(pat.slice(0, -1)) : pat === name;
 function designedFor(A, B) {
@@ -2302,21 +2334,30 @@ function namedClearances(world2, K_ = K3) {
     const r = minDistanceParts(world2, W[aId], aParts, W[bId], bParts, times, 400);
     out.push({ id, label, expected, measured: r.d, at: r.t, note: note2, kind });
   };
-  q("rim-uw", "Rim barrel \u2194 front upper-wishbone rear leg (radial)", 2.8, "wheel_fxp", ["rim"], "front_suspension_pushrod_xp", ["uw_rear_leg"], [0.44], "rim part includes flanges; 0 = triangles intersect");
+  q("rim-uw", "Rim barrel \u2194 front upper-wishbone rear leg (radial)", 8.3, "wheel_fxp", ["rim"], "front_suspension_pushrod_xp", ["uw_rear_leg"], [0.44], "rim part includes flanges; 0 = triangles intersect");
   q("exh-panel", "Exhaust lip \u2194 panel top (pipe + collector vs step panel, no foil/sleeve)", 8.9, "exhaust_system_xp", ["pipe", "collector"], "floor_and_blown_diffuser", ["step_panel_xp"], [0]);
-  q("exh-panel-built", "Exhaust lip \u2194 panel top as built (F4 sleeve + F2 foil included)", 8.9, "exhaust_system_xp", null, "floor_and_blown_diffuser", null, [0], "spec value ignores the 2 mm F4 sleeve and 0.5 mm F2 foil", "info");
-  q("floor-tyre", "Floor \u2194 rear tyre", 15.5, "floor_and_blown_diffuser", null, "wheel_rxp", ["tyre"], [0]);
-  q("exh-wb", "Exhaust \u2194 exploded rear lower-wishbone bracket (C1 window)", 14, "exhaust_system_xp", null, "rear_suspension_pullrod_xp", ["lw_front_leg"], range(0.64, 0.78, 1e-3), "min over C1 [0.64,0.78]");
-  q("exh-wb-e15", "Exhaust \u2194 rear lower-wishbone leg at e\u22480.15 (t=" + e015.toFixed(3) + ")", 14, "exhaust_system_xp", null, "rear_suspension_pullrod_xp", ["lw_front_leg"], [e015], "", "info");
-  q("exh-wb-all", "Exhaust \u2194 rear lower-wishbone leg, whole timeline (B1 + C1)", 14, "exhaust_system_xp", null, "rear_suspension_pullrod_xp", ["lw_front_leg", "lw_rear_leg"], range(0, 1, 2e-3), "smallest over t in [0,1]", "info");
-  q("exh-pod", "Exhaust \u2194 pod lower edge (static, and A4)", 19.8, "exhaust_system_xp", null, "sidepod_pods_xp", null, [0, ...range(0.2, 0.36, 5e-3)]);
-  q("rad-pod", "Radiator \u2194 pod undercut (static)", 21.2, "radiator_internals_xp", null, "sidepod_pods_xp", null, [0], "spec measures vertically to the OUTER surface; the 3 mm wall puts the inner skin 3 mm closer");
-  q("rad-mono", "Radiator \u2194 monocoque (static)", 26.2, "radiator_internals_xp", null, "monocoque_survival_cell", null, [0]);
-  q("exh-tyre", "Exhaust lip \u2194 rear tyre (static)", 26.3, "exhaust_system_xp", ["pipe", "collector"], "wheel_rxp", ["tyre"], [0]);
-  q("cover-pickup", "Cover skirt \u2194 rear upper-wishbone pickup (static)", 28.9, "engine_cover_and_sharkfin", ["canopy"], "rear_suspension_pullrod_xp", ["uw_front_leg", "uw_rear_leg"], [0], "spec value is to the hardpoint centre, not the 60 mm-chord member end");
-  q("exh-exh", "_xp exhaust \u2194 _xn exhaust (t = 1)", 32.6, "exhaust_system_xp", null, "exhaust_system_xn", null, [1]);
-  q("lw-diff", "Rear lower wishbone \u2194 diffuser roof (static)", 54.9, "rear_suspension_pullrod_xp", ["lw_front_leg", "lw_rear_leg"], "floor_and_blown_diffuser", ["diffuser_roof_xp", "diffuser_roof_c"], [0]);
-  q("flap2-tyre", "FW flap 2 \u2194 front tyre (static)", 87.6, "nose_and_front_wing_cascade", ["fw_flap2_xp"], "wheel_fxp", ["tyre"], [0]);
+  q("exh-panel-built", "Exhaust lip \u2194 panel top as built (F4 sleeve + F2 foil included)", 6.4, "exhaust_system_xp", null, "floor_and_blown_diffuser", null, [0], "includes the 2 mm F4 sleeve and the 0.5 mm F2 foil");
+  q("floor-tyre", "Floor \u2194 rear tyre", 15.3, "floor_and_blown_diffuser", null, "wheel_rxp", ["tyre"], [0]);
+  q("exh-wb", "Exhaust \u2194 exploded rear lower-wishbone bracket (C1 window)", 12.6, "exhaust_system_xp", null, "rear_suspension_pullrod_xp", ["lw_front_leg"], range(0.64, 0.78, 1e-3), "min over C1 [0.64,0.78]");
+  q("exh-wb-e15", "Exhaust \u2194 rear lower-wishbone leg at e\u22480.15 (t=" + e015.toFixed(3) + ")", 12.7, "exhaust_system_xp", null, "rear_suspension_pullrod_xp", ["lw_front_leg"], [e015], "", "info");
+  q("exh-wb-all", "Exhaust \u2194 rear lower-wishbone leg, whole timeline (B1 + C1)", 12.6, "exhaust_system_xp", null, "rear_suspension_pullrod_xp", ["lw_front_leg", "lw_rear_leg"], range(0, 1, 2e-3), "smallest over t in [0,1]", "info");
+  q("exh-pod", "Exhaust \u2194 pod lower edge (static, and A4)", 20, "exhaust_system_xp", null, "sidepod_pods_xp", null, [0, ...range(0.2, 0.36, 5e-3)]);
+  q("rad-pod", "Radiator \u2194 pod undercut (static)", 16.3, "radiator_internals_xp", null, "sidepod_pods_xp", null, [0], "3D distance to the inner skin (3 mm wall); \xA75.5 corner table is vertical to the outer surface");
+  q("rad-mono", "Radiator \u2194 monocoque (static)", 26.1, "radiator_internals_xp", null, "monocoque_survival_cell", null, [0]);
+  q("exh-tyre", "Exhaust lip \u2194 rear tyre (static)", 34.7, "exhaust_system_xp", ["pipe", "collector"], "wheel_rxp", ["tyre"], [0]);
+  q("cover-pickup", "Cover skirt \u2194 rear upper-wishbone pickup (static)", 16.4, "engine_cover_and_sharkfin", ["canopy"], "rear_suspension_pullrod_xp", ["uw_front_leg", "uw_rear_leg"], [0], "member end-cap surface; 28.9 (\xA75.3) is the pickup centre to the skirt plane");
+  q("exh-exh", "_xp exhaust \u2194 _xn exhaust (t = 1)", 36.3, "exhaust_system_xp", null, "exhaust_system_xn", null, [1]);
+  q("lw-diff", "Rear lower wishbone \u2194 diffuser roof (static)", 54.6, "rear_suspension_pullrod_xp", ["lw_front_leg", "lw_rear_leg"], "floor_and_blown_diffuser", ["diffuser_roof_xp", "diffuser_roof_c"], [0]);
+  q("flap2-tyre", "FW flap 2 \u2194 front tyre (static)", 87.4, "nose_and_front_wing_cascade", ["fw_flap2_xp"], "wheel_fxp", ["tyre"], [0]);
+  /*! rows added by the spec corrections (RB7_SPEC_CORRECTIONS.md §8) */
+  const wheelParts = ["tyre", "rim", "spokes", "disc", "caliper"];
+  q("exh-rsus-b1", "Exhaust \u2194 rear suspension (B1 pass)", 13.3, "exhaust_system_xp", null, "rear_suspension_pullrod_xp", null, range(0.44, 0.62, 1e-3));
+  q("cover-mono", "Cover \u2194 monocoque (static)", 7.7, "engine_cover_and_sharkfin", ["canopy", "airbox_face"], "monocoque_survival_cell", null, [0]);
+  q("push-slot", "Pushrod \u2194 chassis slot (static and through B1)", 5.3, "monocoque_survival_cell", null, "front_suspension_pushrod_xp", ["pushrod"], [0, ...range(0.44, 0.62, 1e-3)]);
+  q("track-hole", "Track rod \u2194 chassis hole (static and through B1)", 6.2, "monocoque_survival_cell", null, "front_suspension_pushrod_xp", ["trackrod"], [0, ...range(0.44, 0.62, 2e-3)]);
+  q("ep-tyre", "FW endplate \u2194 front tyre (static)", 88.2, "nose_and_front_wing_cascade", ["fw_endplate_xp"], "wheel_fxp", ["tyre"], [0]);
+  q("wheel-f", "Closest front member \u2194 own wheel (static = B1 minimum)", 5.1, "front_suspension_pushrod_xp", null, "wheel_fxp", wheelParts, [0]);
+  q("wheel-r", "Closest rear member \u2194 own wheel (static = B1 minimum)", 6.3, "rear_suspension_pullrod_xp", null, "wheel_rxp", wheelParts, [0]);
   return out;
 }
 /*! --------------------------------------------------------------------------- */
@@ -2529,16 +2570,15 @@ function runAsserts(model2, world2) {
     for (const p of fl.parts) if (/diffuser_roof/.test(p.name)) meshTop = Math.max(meshTop, p.mesh.bbox().max[1]);
     push(
       "A4",
-      "diffuser roof y_r \u2264 H_D=125 on [Z_RA\u2212350, Z_RA]\xD7[\u2212490,490]; every z-section is one connected polyline",
-      maxYr <= K3.HD + 1e-9 && comps === 1,
-      `max y_r = ${f(maxYr, 6)} mm; max connected components over 21 z-sections = ${comps}${worstZ !== null && comps !== 1 ? " at z=" + f(worstZ, 1) : ""}`
+      "R9: diffuser panel top (y_r + t_D) \u2264 H_D=125 on [Z_RA\u2212350, Z_RA]\xD7[\u2212490,490]; every z-section is one connected polyline",
+      meshTop <= K3.HD + 1e-9 && comps === 1,
+      `panel top = ${f(meshTop, 3)} mm (margin ${f(K3.HD - meshTop, 3)}); max connected components over 21 z-sections = ${comps}${worstZ !== null && comps !== 1 ? " at z=" + f(worstZ, 1) : ""}`
     );
     push(
-      "A4s",
-      "STRICT R9 reading: highest diffuser panel surface (roof top = y_r + 8) \u2264 H_D=125",
-      meshTop <= K3.HD + 1e-9,
-      `diffuser roof panel top = ${f(meshTop, 3)} mm (> 125 by ${f(meshTop - K3.HD, 3)}); spec \xA75.6 itself lists bbox y max 133`,
-      { specConflict: true }
+      "A4a",
+      "\xA75.6: diffuser airflow surface y_r \u2264 H_D \u2212 t_D = " + (K3.HD - FLOOR.roofThick),
+      maxYr <= K3.HD - FLOOR.roofThick + 1e-9,
+      `max y_r = ${f(maxYr, 6)} mm`
     );
   }
   /*! 5 ------------------------------------------------------------------- */
@@ -2636,8 +2676,8 @@ function runAsserts(model2, world2) {
       mz += b.mass * b.com[2];
     }
     const com = [mx / m, my / m, mz / m];
-    const ok = Math.abs(m - 216.9) < 0.05 && Math.abs(com[1] - 292.6) < 0.05 && Math.abs(com[2] + 1486.3) < 0.05 && Math.abs(com[0]) < 1e-9;
-    push("A8", "\u03A3m = 216.9 kg and modelled CoM_B = (0, 292.6, \u22121486.3)", ok, `\u03A3m=${f(m, 3)} kg; CoM=(${f(com[0], 3)}, ${f(com[1], 3)}, ${f(com[2], 3)}) mm`, { com, mass: m });
+    const ok = Math.abs(m - 216.9) < 0.05 && Math.abs(com[1] - MODELLED_TOTAL.com[1]) < 0.05 && Math.abs(com[2] - MODELLED_TOTAL.com[2]) < 0.05 && Math.abs(com[0]) < 1e-9;
+    push("A8", `\u03A3m = 216.9 kg and modelled CoM_B = (0, ${MODELLED_TOTAL.com[1]}, ${MODELLED_TOTAL.com[2]})`, ok, `\u03A3m=${f(m, 3)} kg; CoM=(${f(com[0], 3)}, ${f(com[1], 3)}, ${f(com[2], 3)}) mm`, { com, mass: m });
   }
   /*! table consistency: d_B column of §7.2 */
   {
@@ -2684,7 +2724,7 @@ function regChecks(model2) {
       worst = Math.max(worst, gap);
       gaps.push(`${key2} TE z=${zTE.toFixed(1)}: ${gap.toFixed(1)}`);
     }
-    R("R11x", "BRIEF", "FW element tips reach the endplate inner face (span ends at |x|=840; trimmed at the slanted inner face)", worst <= 1, `max gap ${worst.toFixed(1)} mm \u2014 ${gaps.join("; ")}`);
+    R("R11x", "BRIEF", "FW element tips reach the endplate inner face (span ends at |x|=840; inner face x=840)", worst <= 1, `max gap ${worst.toFixed(1)} mm \u2014 ${gaps.join("; ")}`);
   }
   const ep = bb("nose_and_front_wing_cascade", (p) => /endplate/.test(p.name));
   R("R1", "BRIEF", "FW endplate |x| \u2264 900", Math.max(Math.abs(ep.min[0]), Math.abs(ep.max[0])) <= 900 + 1e-6, `max |x| = ${f(Math.max(Math.abs(ep.min[0]), Math.abs(ep.max[0])))}`);
@@ -2695,7 +2735,7 @@ function regChecks(model2) {
   const rw = bb("rear_wing_DRS", (p) => /main|flap/.test(p.name));
   R("R15", "REG-RECALL", "RW elements: 730 \u2264 y \u2264 950, |x| \u2264 375", rw.min[1] >= 730 && rw.max[1] <= 950 && rw.max[0] <= 375, `elements y \u2208 [${f(rw.min[1])}, ${f(rw.max[1])}], |x| \u2264 ${f(rw.max[0])}`);
   const rwAll = bb("rear_wing_DRS");
-  R("R15x", "EST", "RW endplates / beam wing below y=730 (spec flags [EST])", rwAll.min[1] >= 730, `lowest RW point y = ${f(rwAll.min[1])}`);
+  R("R15x", "EST", "INFO (C10 ruling: R15 box governs the main plane + flap only) RW endplates / beam wing below y=730", true, `lowest RW point y = ${f(rwAll.min[1])}`);
   const ex = 2 * (Math.PI * EXH.a * EXH.bb / 2 + 1.9569 * EXH.a * EXH.bt + 10 * 282 + Math.PI * 100);
   R("R13", "BRIEF", "exhaust bodywork aperture \u2264 50 000 mm\xB2 (combined)", ex <= 5e4, `\u2248 ${f(ex, 0)} mm\xB2 (spec 15 680)`);
   const fl = bb("floor_and_blown_diffuser", (p) => !/diffuser|fence|sidewall/.test(p.name));
@@ -3610,7 +3650,7 @@ function renderReport() {
     <table class="t"><tr><th>pair</th><th>min (mm)</th><th>when</th><th>status</th></tr>${rows(sweepRows)}</table>
     <h4>Static part-level scan at t = 0 \u2014 part pairs within 5 mm (_xn bodies mirror _xp)</h4>
     <table class="t"><tr><th>part pair</th><th>distance (mm)</th><th>status</th></tr>${rows(partRows)}</table>
-    <h4>Designed-contact allow-list (my interpretation, not in the spec)</h4><table class="t">${rows(designed)}</table>
+    <h4>Designed-contact allow-list (spec \xA78.10, confirmed by the spec corrections)</h4><table class="t">${rows(designed)}</table>
     <h4>Regulatory envelope (informational)</h4><table class="t">${rows(regRows)}</table>
     <h4>Provisional values (not verified against the FIA text)</h4><table class="t">${rows(prov)}</table>
     <h4>Interpretation log</h4><table class="t">${rows(notes)}</table>`;

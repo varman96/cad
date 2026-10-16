@@ -2,6 +2,8 @@
 
 Spec for the Three.js implementation stage. Math and construction recipes only — no code, materials or rendering.
 
+**Revision 2026-10-15.** Corrections 1–8 from [RB7_SPEC_CORRECTIONS.md](RB7_SPEC_CORRECTIONS.md) are applied (diffuser panel top under R9, straight FW endplates, cover skirt stations, chassis openings, front/rear hardpoints and disc offsets, F3 foil, designed contacts, §8.9 table). Every value they touch was re-measured on the built meshes.
+
 ## 0. Legend and conventions
 
 | Tag | Meaning |
@@ -36,7 +38,7 @@ With +Y up and +Z forward, a right-handed frame (Three.js) puts +X on the car's 
 | Reference / step plane | y = 0 / y = 50 | [BRIEF] |
 | Skid plank | \|x\| ≤ 150, y ∈ [−10, 0] | [BRIEF] |
 | Camber, toe, steer | 0 | [CHOICE] see §5.10 for camber as an option |
-| H_D (diffuser roof cap) | 125 | [BRIEF] — see §3 note (b) |
+| H_D (diffuser roof cap) | 125 | [BRIEF] — caps the diffuser panel top; airflow surface ≤ H_D − t_D = 117. See §3 note (b) |
 
 ## 2. Rake pre-transform
 
@@ -95,7 +97,7 @@ In W these are (±725, 305, 0) and (±700, 305, −3300).
 | Plank underside, front end | −10 | −340.37 | 25.68 |
 | Plank underside, rear end | −10 | −3308.74 | 118.92 |
 | Front-wing lowest point (endplate foot, LE) | 75 | 985 | 69.0 |
-| Diffuser exit roof | 125 | −3658.74 | 264.85 |
+| Diffuser exit roof, airflow surface (panel top 125 → 264.85) | 117 | −3658.74 | 256.85 |
 | Rear-wing flap TE | 935 | −3877.5 | 1081.3 |
 
 ### 2.3 Physics side-effect
@@ -108,7 +110,7 @@ Margins are measured in B. "Axle" means Z_FA / Z_RA from §2.1.
 
 | ID | Constraint | Tag | Model value | Margin |
 |---|---|---|---|---|
-| R1 | \|x\| ≤ 900, all parts including tyres | [BRIEF] | FW endplate 900.0; front tyre 897.5 | 0 / 2.5 |
+| R1 | \|x\| ≤ 900, all parts including tyres | [BRIEF] | FW endplate 850.0; front tyre 897.5 | 50 / 2.5 |
 | R2 | y ≤ 950 | [BRIEF] | airbox and fin 950.0; RW ≤ 936 | 0 |
 | R3 | z ≤ Z_FA + 1200 | [BRIEF] | nose tip 1175.0 (1185.4 from axle) | 14.6 |
 | R4 | z ≤ Z_FA + 1000 where \|x\| > 200 | [BRIEF] | FW LE / endplate LE 985.0 (995.4) | 4.6 |
@@ -116,13 +118,13 @@ Margins are measured in B. "Axle" means Z_FA / Z_RA from §2.1.
 | R6 | Plank 300 × 10 from Z_FA − 330 to Z_RA | [BRIEF]/[REG-RECALL] | z ∈ [−3308.74, −340.37] | exact |
 | R7 | Step plane at y = 50 outboard of \|x\| = 150 | [BRIEF] | exact | — |
 | R8 | Behind Z_RA and y < 150: \|x\| ≤ 500 | [BRIEF] | diffuser \|x\| ≤ 490 | 10 |
-| R9 | Diffuser surface y ≤ H_D for z ∈ [Z_RA − 350, Z_RA] | [BRIEF], note (b) | 125 | 0 |
+| R9 | Diffuser bodywork y ≤ H_D for z ∈ [Z_RA − 350, Z_RA] | [BRIEF], note (b) | panel top 125 (airflow surface 117) | 0 |
 | R10 | Diffuser region: every vertical section one continuous line | [BRIEF] | roof is a single-valued y = f(x, z); fences are vertical spurs; no slots behind Z_RA | ✓ |
-| R11 | FW elements \|x\| ≤ 840; endplates \|x\| ≤ 900 | [BRIEF] | 840 / 900 | 0 |
+| R11 | FW elements \|x\| ≤ 840; endplates \|x\| ≤ 900 | [BRIEF] | 840 / 850 (plate inner face at 840 meets every tip) | 0 / 50 |
 | R12 | Suspension section: chord ≤ 100, AR ≤ 3.5, major axis ≤ 5° from horizontal | [BRIEF], note (a) | 60×20 (3.0), 40×16 (2.5), 36×14 (2.6); major axis exactly horizontal | ✓ |
 | R13 | Exhaust bodywork aperture ≤ 50 000 mm² combined | [BRIEF] | 2 × 7 840 = 15 680 (§5.7) | 34 320 |
 | R14 | FW bodywork 75 ≤ y ≤ 275 outboard of the central 500 | [REG-RECALL] | 75 … 269 | 0 / 6 |
-| R15 | RW box: 730 ≤ y ≤ 950, \|x\| ≤ 375 | [REG-RECALL] | lowest ≈ 765; \|x\| ≤ 375 | 35 |
+| R15 | RW box: 730 ≤ y ≤ 950, \|x\| ≤ 375 (main plane and flap; endplates and beam wing lie outside this box) | [REG-RECALL] | lowest ≈ 765; \|x\| ≤ 375 | 35 |
 | R16 | DRS slot gap 10–15 closed, ≤ 50 open | [REG-RECALL] | 12 / 50 | — |
 | R17 | Floor \|x\| ≤ 700 between the axles | [REG-RECALL] | 700 | 0 |
 | R18 | Brake disc Ø ≤ 278, thickness ≤ 28 | [REG-RECALL] | 278 × 28 | 0 |
@@ -132,7 +134,7 @@ Margins are measured in B. "Axle" means Z_FA / Z_RA from §2.1.
 **Interpretation notes**
 
 - **(a)** The "within 5° of horizontal" rule must apply to the **cross-section's major axis**, not the member's centreline. Otherwise every pushrod or pullrod (28–35° inclined) would be illegal. Members are built so that the major axis is exactly ⟂ Y_B (§4.5). Wishbone *centrelines* are additionally kept ≤ 5° as a design target, to meet "near-horizontal".
-- **(b)** Read literally, "no bodywork above 125 mm from the rear axle to 350 mm behind it" would forbid the rear wing, the engine-cover tail and the crash structure. I read it as a cap on the **diffuser surface (\|x\| ≤ 500)**. **[REG-CHECK]** My recollection of the 2009–13 text puts the diffuser roof at **175 mm**. H_D is a single parameter; changing it only rescales ρ(s) in §5.6. If it changes, re-check the clearance to the rear lower wishbones (§5.9).
+- **(b)** Read literally, "no bodywork above 125 mm from the rear axle to 350 mm behind it" would forbid the rear wing, the engine-cover tail and the crash structure. I read it as a cap on the **diffuser bodywork (\|x\| ≤ 500)**. A bodywork height limit limits material, so it applies to the **top of the roof panel**: y_r + t_D ≤ H_D, and the airflow surface y_r reaches H_D − t_D = 117 (§5.6). H_D = 125 is locked. It is a single parameter; changing it only rescales ρ(s) in §5.6. If it changes, re-check the clearance to the rear lower wishbones (§5.9).
 - **(c)** The floor slot of §5.6 sits *ahead* of Z_RA, so the brief's continuity rule (R10, which covers the diffuser region only) does not apply to it.
 
 ## 4. Shared construction primitives
@@ -286,20 +288,20 @@ Closed superellipse loft (§4.1) [EST ±15 on every station value]:
 - **Cascade clearance:** C1's lower surface (≈ 210) clears the main plane's upper surface (≈ 122) by ≈ 88.
 - **Cascade struts:** two vertical plates 6 thick at |x| = 620 and |x| = 835, spanning the element chords, from the main-plane upper surface to C2.
 
-**Endplates.** The outer face is the vertical plane through the plan line (x, z) = (840, 985) → (900, 440), so it toes out 6.28° rearward and steers flow round the tyre. Thickness 10, measured inboard.
+**Endplates** [CHOICE]. The outer face is the vertical plane through the plan line (x, z) = (850, 985) → (850, 400), parallel to Z. Thickness 10, measured inboard, so the inner face is x = 840 and meets every element tip along its whole chord (R11). An earlier 6.28° toe-out left the tips up to 53.8 short of the plate.
 
-- Outline in (s, y), with s measured along the plan line from the LE (length 548.3): polygon (0, 75) → (0, 275) → (548.3, 275) → (548.3, 140) → (480, 75).
-- **Footplate:** y ∈ [75, 80], 60 wide inboard of the endplate, z ∈ [700, 985].
+- Outline in (s, y), with s measured along the plan line from the LE (length 585): polygon (0, 75) → (0, 275) → (585, 275) → (585, 140) → (516.7, 75). The TE at z = 400 covers flap 2's TE (405.1).
+- **Footplate:** y ∈ [75, 80], 60 wide inboard of the endplate (x ∈ [780, 840]), z ∈ [700, 985].
 
 **Pylons.** Two plates 10 thick at |x| ∈ [75, 85] with side outline z ∈ [800, 1000]. Each runs from the neutral-section upper surface (y ≈ 127) to the nose underside (y ≈ 308).
 
 **Tyre clearances:**
 - Front tyre front face at y = 267: z = Z_FA + √(330² − 37.6²) = 317.5. Flap 2 TE is at 405.1 → **87.6 clear**.
-- Endplate TE (z = 440) against the tyre front at hub height (319.6) → **120 clear**.
+- Endplate TE (z = 400) against the front tyre → **88.3 clear** (3D minimum; the plate lies over the tyre shoulder).
 
 **Summary**
 
-- **Bounding box:** x ∈ [−900, 900], y ∈ [75, 640], z ∈ [350, 1175].
+- **Bounding box:** x ∈ [−850, 850], y ∈ [75, 640], z ∈ [350, 1175].
 - **Mass** 14.5 kg = nose 6.0 [EST ±1.5] + wing 8.5 [EST ±2].
   - Nose CoM (0, 460, 680); wing CoM (0, 165, 760).
   - **Assembly CoM (0, 287, 727)** [DERIVED from these estimates].
@@ -311,8 +313,8 @@ Closed superellipse loft (§4.1) [EST ±15 on every station value]:
 
 | z | a | y_s | y_bot | y_top | n | Note |
 |---|---|---|---|---|---|---|
-| −1250 | 150 | 700 | 645 | 950 | 2.5 | airbox / roll-hoop face |
-| −1500 | 230 | 660 | 635 | 948 | 3.0 | skirt 8 above the monocoque skin (626.9 at x = 230) |
+| −1250 | 150 | 700 | 659 | 950 | 2.5 | airbox / roll-hoop face; bottom edge 8.3 above the monocoque crown (650.7) |
+| −1500 | 230 | 660 | 651 | 948 | 3.0 | skirt 23.8 above the monocoque skin (627.2 at x = 230) |
 | −2000 | 270 | 560 | 530 | 860 | 3.5 | |
 | −2300 | 250 | 515 | 490 | 790 | 3.5 | skirt = pod top inner edge (250, 490) |
 | −2550 | 225 | 465 | 440 | 700 | 3.5 | skirt = pod top inner edge (225, 440) |
@@ -321,7 +323,8 @@ Closed superellipse loft (§4.1) [EST ±15 on every station value]:
 | −3450 | 80 | 340 | 320 | 430 | 2.2 | tail over the gearbox (open end) |
 
 - **Airbox.** The z = −1250 face is capped except for the inlet: the hole `|x/70|^2.5 + |(y − 850)/75|^2.5 ≤ 1` [EST ±10]. The cover's top at that face (950) is the roll-hoop crown. The structural hoop's mass is booked to the monocoque.
-- **Rear-suspension clearance:** behind z = −2850, a(z) ≤ 115 keeps the rear upper-wishbone pickups (x ≥ 130) outboard of the skirt. The clearance is 28.9 at z = −3050 and 47.7 at z = −3420.
+- **Monocoque clearance:** the skirt bottom stays ≥ 8.15 above the monocoque skin at x = a(z) over z ∈ [−1250, −2000] (minimum at z ≈ −1390, linear interpolation). 3D minimum on the meshes: canopy 7.8, airbox face 9.4.
+- **Rear-suspension clearance:** behind z = −2850, a(z) ≤ 115 keeps the rear upper-wishbone pickups (x ≥ 130) outboard of the skirt. Pickup centre to skirt plane is 28.9 at z = −3050 and 47.7 at z = −3420. The 60-chord member end cap comes to **16.4** of the cover (static and through A1).
 
 **Shark fin.** Plate x ∈ [−4, 4]. Side outline in (z, y) [CHOICE]:
 - Lower edge: the canopy centreline y_top(z), for z ∈ [−3300, −1350].
@@ -349,7 +352,8 @@ Closed superellipse loft (§4.1) [EST ±15 on every station value]:
 | −2850 | 180 | 260 | 240 | 275 | 340 | tail, open exit under the cover |
 
 - The 140 mm lift of Y_b between −2050 and −2300 forms a tunnel. The exhaust runs under it (pipe top ≤ 205 < Y_b ≥ 215, §5.7), so the pod can slide outboard over the pipe.
-- **Inboard gap:** the gap to the monocoque at the inlet is 22.5 (skin x = 277.5 at y = 560), which reads as closed.
+- **Inboard gap:** the gap to the monocoque at the inlet is 22.5 (skin x = 277.5 at y = 560), which reads as closed. The inboard *lower* edge (300, 230) is 2.3 from the skin (x = 297.7). That is designed proximity: static only, it opens in A4.
+- **F3 heat-shield foil** (owned by this body, moves with it in A4): the outer C-shell surface on the lower lobe, φ ∈ [−π/2, 0], for z ∈ [−2300, −2750] (the exhaust tunnel, over the pipe for u ≈ 0.05–0.6). It is offset 0.5 outward along the surface normal, single sheet, open edges. Mass is included in the pod estimate. Exhaust ↔ pod including F3: 20.0.
 
 **Summary**
 
@@ -387,6 +391,8 @@ Local box: x′ ∈ [−25, 25] along ŵ, y′ ∈ [−150, 150] along v̂, z′
 
 The inlet face (−1150) is 260 ahead of the core front (−1409.7).
 
+These are vertical gaps to the pod's *outer* surface. The 3D minimum to the 3 mm inner skin is **16.3** (§8.9).
+
 **Summary**
 
 - **Bounding box (_xp):** x ∈ [281.7, 598.3], y ∈ [178.1, 481.9], z ∈ [−2030.3, −1409.7].
@@ -414,13 +420,14 @@ The start station is Z_FA − 330 = **−340.37** [BRIEF/REG-RECALL, measured fr
 
 ```
 y0(x)    = 0 for |x| ≤ 150,   50 for 150 < |x| ≤ 490
-y_r(x,z) = y0(x) + (H_D − y0(x))·ρ(s),     ρ(s) = 2s² − s³
+t_D      = 8                                              roof panel thickness
+y_r(x,z) = y0(x) + (H_D − t_D − y0(x))·ρ(s),     ρ(s) = 2s² − s³      (airflow surface, max 117)
 ρ(0) = 0, ρ'(0) = 0  (C¹ with the floor);   ρ(1) = 1, ρ'(1) = 1;   max ρ' = 4/3 at s = 2/3
 ```
 
-- **Central channel:** rise 125, mean slope 19.7°, maximum 25.5°.
-- **Outer channels:** rise 75, mean slope 12.1°, maximum 15.9°.
-- **Roof panel:** 8 thick, offset upward (top = y_r + 8).
+- **Central channel:** rise 117, mean slope 18.5°, maximum 24.0°.
+- **Outer channels:** rise 67, mean slope 10.8°, maximum 14.3°.
+- **Roof panel:** t_D = 8 thick, offset upward, occupying [y_r, y_r + t_D]. Its top reaches exactly H_D = 125 at the exit (s = 1): R9, margin 0.
 - **Fences:** 6-thick vertical plates at |x| = 150 and 320, plus the outer sidewall at |x| = 490. Each runs from y = 0 up to the local roof (the higher roof at |x| = 150).
 - **R10:** each z-section is one connected polyline (graph roof plus vertical spurs), with no slots or steps-over ✓.
 
@@ -431,11 +438,11 @@ y_r(x,z) = y0(x) + (H_D − y0(x))·ρ(s),     ρ(s) = 2s² − s³
 - **Gold heat-shield foil** (floor-owned meshes, 0.5 above the panel top at y = 60.5):
   - **F1 band:** every panel-top point whose plan distance to the plan projection of the exhaust centreline (§5.7, u ∈ [0.35, 1]) is ≤ 110 (pipe half-width 55 + 55). Clip to the outline.
   - **F2 exit fan:** a plan sector with its apex at the exit (580, −2925), axis along the plan exit direction (0.7880, −0.6157) in (x, z), half-angle 25°, radius 150, clipped to the outline.
-  - F3 (pod underside) and F4 (pipe sleeve) belong to §5.4 and §5.7. Each foil patch must move with its owner.
+  - F3 (pod underside, defined in §5.4) and F4 (pipe sleeve, §5.7) are owned by those bodies. Each foil patch must move with its owner.
 
 **Summary**
 
-- **Bounding box:** x ∈ [−700, 700], y ∈ [0, 133], z ∈ [−3658.74, −340.37].
+- **Bounding box:** x ∈ [−700, 700], y ∈ [0, 125], z ∈ [−3658.74, −340.37].
 - **Mass** 14 kg [EST ±4]: ≈ 3.4 kg/m² over a 4.10 m² plan area.
 - **CoM** (0, 55, −1975). The z value is the area-weighted plan centroid [DERIVED]; y is [EST].
 - **Displacement:** d_W = (0, −0.80, 0) m, so d_B = (0, −0.79961, +0.02513). Stage C2.
@@ -494,13 +501,13 @@ Other clearances:
 
 | Point | Coordinates | Belongs to |
 |---|---|---|
-| UBJ (upper ball joint) | (625, 454.84, −30.0) | joint; upright side → wheel assembly |
+| UBJ (upper ball joint) | (625, 424.84, −30.0) | joint; upright side → wheel assembly. r = 121.6 from the axle |
 | LBJ (lower ball joint) | (645, 232.0, −5.0) | joint; upright side → wheel assembly |
-| UF / UR (upper wishbone, inboard) | (200, 470, +200) / (240, 475, −250) | chassis brackets |
+| UF / UR (upper wishbone, inboard) | (200, 440, +200) / (240, 445, −250) | chassis brackets |
 | LF / LR (lower wishbone, inboard) | (175, 265, +170) / (245, 265, −270) | chassis brackets |
 | PRo (pushrod, lower end) | (628, 248, −32) | lower-wishbone outer node |
 | PRi (pushrod → rocker) | (110, 610, −80) | rocker inside the chassis top (rocker not modelled) |
-| TRo (track rod → steering arm) | (630, 399.8, 94.6) | steering arm (upright) |
+| TRo (track rod → steering arm) | (630, 394.8, 89.6) | steering arm (upright). r = 134.5 from the axle |
 | TRi (track rod → rack) | (170, 410, 110) | rack inside the chassis |
 
 **Members** (§4.5):
@@ -514,25 +521,26 @@ All chords are ≤ 100 (R12).
 
 | Quantity | Value |
 |---|---|
-| Upper-wishbone leg inclinations (front, rear) | 1.82°, 2.56° |
-| Lower-wishbone leg inclinations | 3.75°, 3.96° ✓ near-horizontal [BRIEF] |
-| Kingpin LBJ → UBJ | (−20, 222.84, −25): KPI 5.13°, caster 6.40° in B (8.20° in W) |
-| Kingpin ground point (y_B = −25) | x = 668.1, z = +23.8 → scrub radius 56.9, mechanical trail 23.8 (contact patch at B (725, −25, 0) = pivot line) |
-| Pushrod | length 633.8, 34.9° from horizontal in front view; at y = 462 it passes between the upper-wishbone legs (z = −60.4 vs legs at +134.1 / −203.3) |
-| Track rod | length 460.4, 1.27°; ≥ 55 below the upper-wishbone front leg; ≥ 127 from the pushrod |
-| Pushrod skin crossing | ≈ (197, 561, −73.5) |
+| Upper-wishbone leg inclinations (front, rear) | 1.80°, 2.60° |
+| Lower-wishbone leg inclinations | 3.76°, 3.93° ✓ near-horizontal [BRIEF] |
+| Kingpin LBJ → UBJ | (−20, 192.84, −25): KPI 5.92°, caster 7.39° in B (9.19° in W) |
+| Kingpin ground point (y_B = −25) | x = 671.7, z = +28.3 → scrub radius 53.3, mechanical trail 28.3 (contact patch at B (725, −25, 0) = pivot line) |
+| Pushrod | length 633.8, 34.9° from horizontal in front view; at y = 432 it passes between the upper-wishbone legs (z = −56.5 vs legs at +111.2 / −179.1) |
+| Track rod | length 460.7, 1.89°; 13.5 (surface) below the upper-wishbone front leg; 111.6 from the pushrod |
+| Pushrod skin crossing | (199.7, 547.3, −71.7) |
+| Pushrod lower end | PRo sits on top of the lower-wishbone rear leg (designed attachment, intra-body contact) |
 
 **Chassis openings** (cut from the monocoque so the rods can explode outward without collision):
-- Pushrod: a slot covering the skin within 25 mm of the segment (197, 561, −73.5) → (179, 610, −80). This is the locus of skin-crossing points while the rod translates +X until its inboard end exits.
-- Track rod: a 30 × 30 hole at (183, 410, 110).
+- Pushrod: a slot covering the skin within **26 mm** of the segment (199.7, 547.3, −71.7) → (179.5, 610.0, −80.0). The first point is the true δ = 0 centreline crossing; the second is where PRi crosses the skin after δ = 69.5 of +X travel. The rod's (y, z) shadow half-width is 19.8 and the chord sags ≤ 3.4 from the skin. Clearance 5.9 static, 5.4 minimum through B1.
+- Track rod: a **50 (z) × 30 (y)** rectangular hole at (183, 410, 110); the centreline crossing is (183.4, 409.6, 109.4). The rod is within 2.3° of X, so its 36 × 14 shadow is constant through the travel. Clearance 6.2 static and through B1.
 
-**Wishbone/rim clearance.** At the rim's inboard edge (x = 572.5) the upper-wishbone rear leg is at radius 157.2 from the axle, inside the 160 rim barrel. So the wheel slides off the members in pure +X (§7).
+**Wishbone/rim clearance.** Inside the rim (x ≥ 572.5) every member surface stays at r ≤ 152.2 from the axle (the track rod at the rim edge is the outermost), against the 160 barrel. So the wheel slides off the members in pure +X (§7). The closest member ↔ wheel pairs (static = B1 minimum) are: UW rear leg ↔ caliper 5.1, LW rear leg ↔ disc 5.7, LW front leg ↔ disc 6.7, track rod ↔ rim 7.8, UW rear leg ↔ rim 8.3.
 
 **Summary**
 
-- **Bounding box (_xp):** x ∈ [90, 655], y ∈ [222, 620], z ∈ [−300, 230].
+- **Bounding box (_xp):** x ∈ [105, 662], y ∈ [222, 617], z ∈ [−295, 227].
 - **Mass** 2.6 kg per side [EST ±0.8]: legs 4 × 0.45, pushrod 0.5, track rod 0.3.
-- **CoM_xp** (411, 376, −18) [DERIVED: mass-weighted member midpoints].
+- **CoM_xp** (411, 365, −18) [DERIVED: mass-weighted member midpoints].
 - **Displacement:** d_W,xp = (+0.50, 0, 0) m = d_B, i.e. 0.5 × the wheel's [BRIEF]. Stage B1.
 
 ### 5.9 `rear_suspension_pullrod` (×2, `_xp` authored)
@@ -541,14 +549,14 @@ All chords are ≤ 100 (R12).
 
 | Point | Coordinates | Note |
 |---|---|---|
-| UBJ_R | (610, 391.18, −3308.74) | WC + (−90, +190, 0) |
+| UBJ_R | (610, 326.18, −3308.74) | WC + (−90, +125, 0) |
 | LBJ_R | (620, 121.18, −3298.74) | WC + (−80, −80, +10) |
-| UF_R / UR_R | (140, 400, −3050) / (130, 405, −3420) | outboard of the cover skirt by 28.9 / 47.7 |
+| UF_R / UR_R | (140, 335, −3050) / (130, 340, −3420) | outboard of the cover skirt by 28.9 / 47.7 (pickup centres) |
 | LF_R / LR_R | (135, 150, −2950) / (125, 150, −3480) | |
-| PLo (pullrod, upper end) | (600, 366.18, −3318.74) | upper-wishbone outer node |
+| PLo (pullrod, upper end) | (600, 301.18, −3318.74) | upper-wishbone outer node |
 | PLi (pullrod → rocker) | (115, 105, −3060) | low on the gearbox, rocker moved **forward** [BRIEF] |
-| TLo (toe link → upright arm) | (615, 141.18, −3428.74) | behind the axle |
-| TLi | (125, 165, −3500) | |
+| TLo (toe link → upright arm) | (615, 151.18, −3413.74) | WC + (−85, −50, −105), behind the axle |
+| TLi | (125, 165, −3540) | 60 behind LR_R in z, so the toe link clears the LW rear leg |
 
 Sections are as in §5.8: wishbones 60 × 20, pullrod 40 × 16, toe link 36 × 14.
 
@@ -558,30 +566,34 @@ Sections are as in §5.8: wishbones 60 × 20, pullrod 40 × 16, toe link 36 × 1
 |---|---|
 | Upper-wishbone leg inclinations | 0.94°, 1.61° |
 | Lower-wishbone leg inclinations | 2.76°, 3.13° ✓ |
-| Kingpin LBJ_R → UBJ_R | (−10, 270, −10): KPI 2.1° |
-| Pullrod | **length 608.6 (long)**; 28.3° below horizontal in front view; swept 258.7 forward in plan (28.1°). At y ≈ 135 it passes through the lower-wishbone A-frame (z = −3089.7 vs legs at −2975.8 / −3463.2) |
-| Pullrod ↔ lower-wishbone legs | ≥ 120 |
-| Toe link ↔ lower-wishbone rear leg | ≥ 81 |
-| Pullrod ↔ toe link | ≥ 110 |
+| Kingpin LBJ_R → UBJ_R | (−10, 205, −10): KPI 2.8° |
+| Pullrod | **length 583.7 (long)**; 22.0° below horizontal in front view; swept 258.7 forward in plan (28.1°). At y ≈ 135 it passes through the lower-wishbone A-frame (z = −3099.6 vs legs at −2989.0 / −3456.5) |
+| Toe link | length 506.2, 1.56°, 14.5° rearward in plan |
+| Pullrod ↔ lower-wishbone legs | 35.2 (surface; the PLi and LF_R pickups are 120 apart) |
+| Toe link ↔ lower-wishbone rear leg | 15.6 (surface, at the inboard pickups) |
+| Pullrod ↔ toe link | 156.6 |
+| Pullrod upper end ↔ upper-wishbone legs | 8.1 (attachment region at the outer node) |
 
-**Bodywork clearances**
+**Wheel clearance.** Inside the rim (x ≥ 528.5) every member surface stays at r ≤ 153.5 from the axle (the toe link at the rim edge is the outermost), against the 160 barrel. Between the tyre's inboard face and the rim edge the members keep ≥ 52.8 from the tyre bore. The closest member ↔ wheel pairs (static = B1 minimum) are: toe link ↔ rim 6.4, pullrod ↔ upright 6.6, UW front leg ↔ rim 8.3, LW front leg ↔ disc 8.5.
 
-| Pair | H_D = 125 | H_D = 175 (REG-CHECK) |
+**Bodywork clearances** (diffuser per §5.6)
+
+| Pair | Vertical (at the pickup) | 3D minimum |
 |---|---|---|
-| LR_R underside (140) vs outer diffuser roof top at s = 0.489 | 85.1 → **54.9** | 103.2 → **36.8** |
-| TLi underside (158) vs outer roof top at s = 0.546 | 90.5 → **67.5** | 112.2 → **45.8** |
-| Inboard pickups over the central channel | ≥ 74 | ≥ 56 |
+| LR_R underside (140) vs outer diffuser roof top at s = 0.489 (82.2) | **57.8** | LW legs ↔ roof **54.7** |
+| TLi underside (158) vs outer roof top at s = 0.661 (97.2) | **60.8** | toe link ↔ roof 58.5 |
+| Inboard pickups over the central channel | ≥ 81.6 | |
 
 - PLi underside (97) vs floor top (60): 37.
 - Beam wing (z ≤ −3570): 150 from UR_R.
 
 **Summary**
 
-- **Bounding box (_xp):** x ∈ [95, 630], y ∈ [95, 415], z ∈ [−3520, −2920].
+- **Bounding box (_xp):** x ∈ [105, 638], y ∈ [97, 350], z ∈ [−3558, −2926].
 - **Mass** 2.9 kg per side [EST ±0.8]: legs 4 × 0.5, pullrod 0.6, toe link 0.3.
-- **CoM_xp** (370, 248, −3270) [DERIVED: member midpoints].
+- **CoM_xp** (370, 220, −3271) [DERIVED: member midpoints].
 - **Displacement:** d_W,xp = (+0.50, 0, 0) m = d_B. Stage B1.
-- **Optional `gearbox_proxy`** (static, not exploded, not in the brief): box x ∈ [−120, 120], y ∈ [90, 310], z ∈ [−3550, −2550]. It gives the inboard pickups something to sit on. Its top stays below the cover skirt (320).
+- **Optional `gearbox_proxy`** (static, not exploded, not in the brief): box x ∈ [−120, 120], y ∈ [90, 310], z ∈ [−3550, −2550]. It gives the inboard pickups something to sit on. Its top stays below the cover skirt (320) and 15 below the UF_R / UR_R member undersides.
 
 ### 5.10 `wheel_assemblies` (×4: `wheel_fxp`, `wheel_fxn`, `wheel_rxp`, `wheel_rxn`)
 
@@ -591,11 +603,13 @@ Each wheel assembly is one rigid body made of these parts:
 |---|---|
 | Tyre | §4.7 with W = 345 (front) or 375 (rear), R_w = 330, R_rim = 177 |
 | Rim (13") | Barrel outer r = 165, inner 160. Width 305 front / 343 rear [EST ±10]. Flanges to r = 177 at WC.x ± width/2. Outboard dish with 10 spokes, 18 wide, r ∈ [40, 160], set 35 inboard of the outer flange [EST] |
-| Brake disc | Annulus r ∈ [85, 139], 28 thick (R18). Centred at x = WC.x − 60 (front) / WC.x − 55 (rear) [EST] |
+| Brake disc | Annulus r ∈ [85, 139], 28 thick (R18). Centred at x = WC.x − 50 (front) / WC.x − 40 (rear) [EST], outboard of the lower-wishbone end caps (≥ 5.7) |
 | Caliper | Block 60 (x) × 120 (tangential) × 70 (radial, r ∈ [95, 165]), centred at the disc's rear-upper 45° position [CHOICE] |
 | Upright | Kingpin-aligned slab. Inner face = the plane through LBJ and UBJ (parallel to Z), offset +5 outboard. Thickness 60, Z-width 100, extending 30 beyond each joint. Arms reach TRo (front steering arm) and TLo (rear toe arm) from the outboard side |
 
-**Separation rule** (needed for §7): all upright/arm material lies at x ≥ x_joint + 5 at every joint it carries. So the wheel's +X motion (faster than the suspension's) always opens a gap.
+**Separation rule** (needed for §7): all upright/arm material lies at x ≥ x_joint + 5 at every joint it carries. So the wheel's +X motion (faster than the suspension's) always opens a gap. The flat member end caps reach up to 30·|m̂_x| ≤ 14.9 beyond the joint, so member ↔ upright contact ends within 9.9 of relative travel (§8.10).
+
+The caliper block (r up to 165) and the upright slab overlap the barrel and disc volumes. They are proxy geometry: intra-body, and hidden inside the tyre.
 
 **Positions, bounding boxes, masses and CoMs** (B frame, _xp; mirror for _xn):
 
@@ -681,17 +695,17 @@ q′ = P_d + R_x(−δ)·(q − P_d)        (y, z) components:
 | radiator_internals ×2 | 2 × 6.0 | (±440, 330, −1720) |
 | floor_and_blown_diffuser | 14.0 | (0, 55, −1975) |
 | exhaust_system ×2 | 2 × 2.5 | (±337.5, 157.5, −2665.6) |
-| front_suspension_pushrod ×2 | 2 × 2.6 | (±411, 376, −18) |
-| rear_suspension_pullrod ×2 | 2 × 2.9 | (±370, 248, −3270) |
+| front_suspension_pushrod ×2 | 2 × 2.6 | (±411, 365, −18) |
+| rear_suspension_pullrod ×2 | 2 × 2.9 | (±370, 220, −3271) |
 | wheel_assemblies, front ×2 | 2 × 17.0 | (±698.2, 304.84, −10.37) |
 | wheel_assemblies, rear ×2 | 2 × 20.0 | (±673.8, 201.18, −3308.74) |
 | rear_wing_DRS | 7.0 | (0, 698, −3686) |
 | reference_plank | 11.4 | (0, −5, −1823.1) |
-| **Modelled total** | **216.9** | **(0, 292.6, −1486.3)** |
+| **Modelled total** | **216.9** | **(0, 291.6, −1486.3)** |
 
-The total follows from Σm·y = 63 463.4 kg·mm and Σm·z = −322 373.6 kg·mm.
+The total follows from Σm·y = 63 243.8 kg·mm and Σm·z = −322 379.4 kg·mm.
 
-The modelled CoM in W is `y_W = c·ȳ − s·z̄ − h_F(1−c) = 339.1` (364.1 above ground) and `z_W = s·ȳ + c·z̄ + h_F·s = −1475.6`.
+The modelled CoM in W is `y_W = c·ȳ − s·z̄ − h_F(1−c) = 338.1` (363.1 above ground) and `z_W = s·ȳ + c·z̄ + h_F·s = −1475.6`.
 
 ### 6.2 Consistency check against the 2011 weight rules [REG-RECALL]
 
@@ -778,7 +792,7 @@ Two equivalent implementations:
 | Exhaust | −Z 0.6, +Y 0.3 | **(∓0.08, +0.30, −0.60)** | See below |
 | Floor / plank | −Y 0.8 / −Y 1.2 | kept, **same window** | The plank is faster, so it always leads: Δ_plank − Δ_floor = 0.4·e ≥ 0 |
 
-**Exhaust correction.** Without an inboard component, the exhaust's outer lip (x = 613.9) passes the exploded rear lower-wishbone front-leg bracket (x ≥ 617.5) with only **3.6 mm** lateral clearance, at the moment their y-ranges overlap (e ≈ 0.13–0.20). With d_x = −0.08 that clearance becomes **≥ 14 mm**, rising to ≥ 50 mm by e = 0.6. The mirrored exhausts end 32.6 mm apart (70 without the optional collector).
+**Exhaust correction.** Without an inboard component, the exhaust's outer lip (x = 613.9) passes the exploded rear lower-wishbone front-leg bracket (x ≥ 617.5) with only **3.6 mm** lateral clearance, at the moment their y-ranges overlap (e ≈ 0.13–0.20). With d_x = −0.08 that clearance becomes **≥ 12.6 mm** (measured on the built meshes at t ≈ 0.674), rising to ≥ 50 mm by e = 0.6. During B1 the exploding legs also slide past the static exit, at 13.3 mm (t ≈ 0.559). The mirrored exhausts end 36.3 mm apart (the built collector reaches x = 98.2).
 
 **Window lag (radiator inside the pod).** `Δ_pod(t) − Δ_rad(t) = 1.4·e((t − 0.20)/0.16) − 0.7·e((t − 0.26)/0.16) ≥ 0` for all t, because e is monotone and the radiator's argument lags. Combined with the §4.2 lemma, the radiator never touches the pod.
 
@@ -796,14 +810,14 @@ Two equivalent implementations:
 - **A5 (radiators →).** Window lag plus the lemma. The monocoque is inboard, so the gap to it only grows.
 - **B1 (wheels and members →, same window).**
   - Relative motion of each wheel over its members is +0.5·e·X̂.
-  - Inside the rim (x ≥ 572.5) the members stay at r ≤ 157.2, under the 160 barrel. Inside the tyre bore (x ≥ 552.5) they stay at r < 177.
-  - The upright lies at x ≥ joint + 5.
-  - Rods leave the chassis through the §5.8 openings.
-  - Rear lower wishbone over the diffuser sidewall: 59 clearance, growing.
+  - Inside the rim the members stay at r ≤ 152.2 (front) / 153.5 (rear), under the 160 barrel. Between the tyre's inboard face and the rim edge they keep ≥ 49.6 from the tyre bore. The discs lie outboard of the member end caps.
+  - The upright lies at x ≥ joint + 5; member ↔ upright contact ends within 9.9 of relative travel.
+  - Rods leave the chassis through the §5.8 openings (pushrod ≥ 5.4, track rod ≥ 6.2 through the travel).
+  - Rear lower wishbone over the diffuser sidewall: 61.8 clearance, growing.
 - **C1 (exhaust).**
   - Monocoque: z-separated, and the pipe moves rearward.
-  - Floor and diffuser: the pipe rises. It reaches z ≤ Z_RA only once e ≥ 0.65, when its bottom is already ≥ 264 vs the diffuser top ≤ 133.
-  - Exploded rear members: ≥ 14 (above).
+  - Floor and diffuser: the pipe rises. It reaches z ≤ Z_RA only once e ≥ 0.65, when its bottom is already ≥ 264 vs the diffuser top ≤ 125.
+  - Exploded rear members: ≥ 12.6 (above).
   - Exploded tyres (x ≥ 1512) and rear wing (z ≤ −4990): far away.
 - **C2 (floor and plank ↓).** Nothing lies below them except the ground (§7.5). Exploded members (y ≥ 95) sit above the descending floor.
 
@@ -824,33 +838,51 @@ At t = 1 the plank's front underside is at y_W = 0.684 − 1200 = −1199.3, i.e
    - z ≤ Z_FA + 1200 = **1189.63**.
    - z ≤ Z_FA + 1000 = **989.63** wherever |x| > 200.
    - z ≥ Z_RA − 600 = **−3908.74**.
-4. Diffuser roof y_r ≤ H_D on [Z_RA − 350, Z_RA] × [−490, 490]. Every z-section is a single connected polyline.
+4. Diffuser panel top y_r + t_D ≤ H_D on [Z_RA − 350, Z_RA] × [−490, 490] (airflow surface y_r ≤ H_D − t_D = 117). Every z-section is a single connected polyline.
 5. Every suspension member: m̂·Ŷ_B = 0, chord ≤ 100, AR ≤ 3.5. The four wishbone centrelines per corner are ≤ 5° from the reference plane.
 6. Nose section area at z = 1125 ≥ 9000 mm².
 7. DRS: gap(0) = 12 ± 1, gap(δ_open) = 50 ± 0.5, and the flap's maximum y ≤ 950 at δ_open.
-8. Σm = 216.9 kg and modelled CoM_B = (0, 292.6, −1486.3).
-9. **Pairwise sweep.** For t = 0 … 1 in steps of 0.005, check every body pair for triangle–triangle intersection (BVH, e.g. three-mesh-bvh `intersectsGeometry`). The expected minimum clearances are:
+8. Σm = 216.9 kg and modelled CoM_B = (0, 291.6, −1486.3).
+9. **Pairwise sweep.** For t = 0 … 1 in steps of 0.005, check every body pair for triangle–triangle intersection (BVH, e.g. three-mesh-bvh `intersectsGeometry`). The expected minimum clearances are minimum 3D surface distances on the built meshes, rounded down to 0.1:
 
 | Pair | Expected minimum (mm) | When |
 |---|---|---|
-| Rim barrel ↔ front upper-wishbone rear leg (radial) | 2.8 | t = 0.44 (start of B1) |
-| Exhaust lip ↔ panel top | 8.9 | static |
-| Floor ↔ rear tyre | 15.5 | static |
-| Exhaust ↔ exploded rear lower-wishbone bracket | 14 | C1, e ≈ 0.15 |
-| Exhaust ↔ pod lower edge | 19.8 | static, and A4 |
-| Radiator ↔ pod undercut | 21.2 | static, then growing |
-| Radiator ↔ monocoque | 26.2 | static |
-| Exhaust lip ↔ rear tyre | 26.3 | static |
-| Cover skirt ↔ rear upper-wishbone pickup | 28.9 | static |
-| _xp ↔ _xn exhaust | 32.6 | t = 1 |
-| Rear lower wishbone ↔ diffuser roof | 54.9 (36.8 at H_D = 175) | static |
-| FW flap 2 ↔ front tyre | 87.6 | static |
+| Rim barrel ↔ front upper-wishbone rear leg | 8.3 | t = 0.44 (start of B1) |
+| Exhaust lip ↔ panel top: pipe + collector / as built (F4 sleeve + F2 foil) | 8.9 / 6.4 | static |
+| Floor ↔ rear tyre | 15.3 | static |
+| Exhaust ↔ exploded rear lower-wishbone leg | 12.6 (12.7 at e ≈ 0.15) | C1, t ≈ 0.674 |
+| Exhaust ↔ rear suspension (B1 pass) | 13.3 | t ≈ 0.559 |
+| Exhaust ↔ pod lower edge (incl. F3) | 20.0 | static, and A4 |
+| Radiator ↔ pod undercut (inner skin) | 16.3 | static, then growing |
+| Radiator ↔ monocoque | 26.1 | static |
+| Exhaust lip ↔ rear tyre | 34.7 | static |
+| Cover skirt ↔ rear upper-wishbone pickup (member end cap) | 16.4 | static (16.4 during A1) |
+| _xp ↔ _xn exhaust | 36.3 | t = 1 |
+| Rear lower wishbone ↔ diffuser roof | 54.6 | static |
+| FW flap 2 ↔ front tyre | 87.4 | static |
+| Cover ↔ monocoque | 7.7 | static |
+| Pushrod ↔ chassis slot | 5.9 / 5.3 | static / through B1 |
+| Track rod ↔ chassis hole | 6.2 | static and B1 |
+| FW endplate ↔ front tyre | 88.2 | static |
+| Closest member ↔ own wheel, front / rear | 5.1 (UW rear leg ↔ caliper) / 6.3 (toe link ↔ rim) | static = B1 minimum |
 
 If tessellation brings any of these under ~2 mm, raise the segment counts locally rather than moving hardpoints.
 
+10. **Designed contacts.** These touching pairs are by design. Each must end within the stated relative travel; any other touching pair is a defect.
+
+| Bodies | Parts | Why | Allowed relative travel |
+|---|---|---|---|
+| monocoque ↔ nose | skin ~ nose_cone | shared z = 350 station (seamless joint) | 0 |
+| cover ↔ pods | canopy ~ shell | skirt = pod top inner edge at z = −2300 / −2550 / −2850 | 0 |
+| floor ↔ plank | strip walls, central roof at s = 0, fence at \|x\| = 150 ~ plank | reference-strip underside y = 0 on the plank top | 0 |
+| monocoque ↔ floor | skin ~ strip top plate | monocoque underside y = 60 closes the strip box | 0 |
+| suspension ↔ own wheel | member ends ~ upright; track rod ~ steering arm; toe link ~ toe arm | ball joints carried by the upright; flat end caps overlap the slab | ≤ 12 (bound 9.9, §5.10) |
+
+Designed proximity (not contact, no flag): the front UR end cap is 2.8 from the skin (chassis-bracket zone, opens in B1), and the pod lower lip is 2.3 from the monocoque (§5.4, opens in A4).
+
 ## 9. Open items (unverified — do not treat as confirmed)
 
-- **[REG-CHECK] diffuser roof:** the brief says 125, my recollection says 175. It is a single parameter H_D; §5.9 shows the rear wishbones clear either value.
+- **Diffuser roof:** H_D = 125 is locked, and R9 is read as a cap on the diffuser panel top (§3 note (b)).
 - **[REG-RECALL] values R14–R20** (front-wing height window, rear-wing box, DRS gaps, 1400 floor width, brake disc, nose section, 640 kg and 291/342 kg) need checking against the 2011 FIA text.
 - **RB7 dimensions without public drawings** are [EST]: all station tables, hardpoints, radiator orientation, masses and h_F. Changing h_F by Δ shifts every ride height by Δ·c and leaves B-frame geometry untouched.
 - **The brief's "50 mm regulatory opening"** is interpreted as a 50 mm-wide floor slot just ahead of Z_RA (§5.6).
