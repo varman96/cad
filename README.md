@@ -61,6 +61,7 @@ Result: 11 of 11 asserts pass and the sweep flags 0 interferences over 190 pairs
 ## Files
 
 - `rb7_math_spec.md`: the derivation, revision 2026-10-15
-- `rb7_threejs.html`: the single-file build, 3,858 lines
+- `rb7_threejs.html`: the single-file build, 4,088 lines. The §8 verification runs in a Web Worker whose source is embedded as one minified line (with its own copy of three and three-mesh-bvh, same versions as the CDN pins)
+- `build/`: the module sources, esbuild script and test tools that generate `rb7_threejs.html` (see `build/README.md`)
 - `RB7_HANDOFF.md`: first-build report (superseded)
 - `RB7_SPEC_CORRECTIONS.md`: rulings and re-measured values

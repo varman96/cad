@@ -1,0 +1,18 @@
+{
+  "name": "rb7-build",
+  "private": true,
+  "type": "module",
+  "description": "Build and test tooling for ../rb7_threejs.html",
+  "scripts": {
+    "build": "node build.mjs ../rb7_threejs.html",
+    "verify": "node src/run_verify.mjs"
+  },
+  "dependencies": {
+    "esbuild": "0.21.5",
+    "three": "0.160.0",
+    "three-mesh-bvh": "0.7.3"
+  },
+  "devDependencies": {
+    "puppeteer-core": "22.15.0"
+  }
+}

@@ -1,0 +1,18 @@
+import { buildModel } from './bodies.mjs';
+import { buildWorld, runAsserts, namedClearances, PairSweep, regChecks } from './verify.mjs';
+const t0 = performance.now();
+const model = buildModel();
+const world = buildWorld(model);
+console.log('model+world ms', (performance.now() - t0).toFixed(0));
+console.log('\n=== §8 asserts ===');
+for (const r of runAsserts(model, world)) console.log((r.pass ? 'PASS ' : 'FAIL ') + r.id.padEnd(4) + r.title + '\n        ' + r.detail + (r.lines ? '\n        ' + r.lines.join('\n        ') : ''));
+console.log('\n=== regulatory envelope ===');
+for (const r of regChecks(model)) console.log((r.pass ? 'ok   ' : 'FAIL ') + r.id.padEnd(5) + r.tag.padEnd(11) + r.text + '  -> ' + r.val);
+console.log('\n=== named clearances (§8.9 table) ===');
+for (const r of namedClearances(world)) console.log(r.label.padEnd(88), 'expected', String(r.expected).padStart(5), 'measured', (Number.isFinite(r.measured) ? r.measured.toFixed(2) : '>400').padStart(7), 'at t=' + (r.at ?? '-'), r.note ? ' // ' + r.note : '');
+console.log('\n=== pairwise sweep ===');
+const sw = new PairSweep(world, { step: 0.005, thr: 15 });
+const ts = performance.now(); sw.run(1e9);
+console.log('sweep ms', (performance.now() - ts).toFixed(0), 'pairs', sw.pairs.length, 'queries', sw.queries);
+const rows = sw.results.filter((r) => r.min <= 15 || r.violations.length || r.contacts.length).sort((a, b) => a.min - b.min);
+for (const r of rows) console.log(r.a.padEnd(30), r.b.padEnd(30), 'min', (Number.isFinite(r.min) ? r.min.toFixed(2) : '>30').padStart(7), 'at', r.tMin?.toFixed(3), ' d0', r.d0 === null ? '>30' : r.d0.toFixed(2), r.contacts.length ? `contacts:${r.contacts.length} (k ${r.contacts[0].k}-${r.contacts[r.contacts.length - 1].k}, disp<=${r.contacts[r.contacts.length-1].disp.toFixed(1)})` : '', r.unexplained ? 'UNEXPLAINED: ' + [...new Set(r.violations.map(v => v.a + '~' + v.b))].join(' ; ') : (r.designed ? 'designed' : ''));
