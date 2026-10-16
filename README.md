@@ -65,3 +65,6 @@ Result: 11 of 11 asserts pass and the sweep flags 0 interferences over 190 pairs
 - `build/`: the module sources, esbuild script and test tools that generate `rb7_threejs.html` (see `build/README.md`)
 - `RB7_HANDOFF.md`: first-build report (superseded)
 - `RB7_SPEC_CORRECTIONS.md`: rulings and re-measured values
+
+## Contributions
+  Feel free to contribute to this project at any time.
