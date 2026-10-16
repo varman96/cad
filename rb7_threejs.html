@@ -1,0 +1,3818 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RB7 2011 — exploded parametric CAD</title>
+<meta name="description" content="Three.js build of rb7_math_spec.md: raked root, 20 rigid bodies, staged teardown A1-C2, DRS, runtime §8 verification with BVH pairwise sweep.">
+<style>
+:root{--panel:rgba(12,18,34,.82);--line:rgba(255,255,255,.10);--txt:#e9eefb;--mut:#8b97b5;--acc:#FFC20E;--red:#D8173B;--ok:#3fb950;--bad:#ff4d4f;--warn:#e3b341}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;color:var(--txt);font:13px/1.4 system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:radial-gradient(1300px 900px at 58% 28%,#1a2748 0%,#0b1124 55%,#05070f 100%)}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#hud>*{position:fixed;z-index:5}
+.title{left:16px;top:14px;font-size:15px;letter-spacing:.2px;text-shadow:0 1px 8px #000a}
+.title b{color:var(--acc)}.title small{display:block;color:var(--mut);font-size:11px;margin-top:2px}
+.right{right:16px;top:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-end;max-width:min(330px,calc(100vw - 32px))}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:7px;width:100%}
+.panel label{display:flex;align-items:center;gap:8px;color:var(--txt);cursor:pointer}
+.panel select{margin-left:auto;background:#0a1124;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font:inherit;max-width:190px}
+.muted{color:var(--mut)}
+.views{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+button{font:inherit;color:var(--txt);background:#141d38;border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+button:hover{background:#1b2750}
+button.primary{background:var(--acc);color:#14110a;border-color:transparent;font-weight:700}
+button.primary:hover{background:#ffd23d}
+.badge{font-weight:700;letter-spacing:.2px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);text-align:left;width:100%}
+.badge.pass{background:rgba(63,185,80,.16);border-color:rgba(63,185,80,.55);color:#9be9a8}
+.badge.fail{background:rgba(255,77,79,.16);border-color:rgba(255,77,79,.7);color:#ffb3b4;animation:pulse 2.2s ease-in-out infinite}
+.badge.pending{background:rgba(227,179,65,.12);border-color:rgba(227,179,65,.5);color:#f1d58a}
+@keyframes pulse{50%{box-shadow:0 0 0 4px rgba(255,77,79,.18)}}
+.bar{left:50%;transform:translateX(-50%);bottom:16px;width:min(980px,calc(100vw - 24px));background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 14px 8px;backdrop-filter:blur(8px)}
+.bar .row{display:flex;gap:10px;align-items:center}
+.tval{font-variant-numeric:tabular-nums;color:var(--acc);min-width:86px;text-align:right}
+input[type=range]{flex:1;accent-color:var(--acc);height:22px}
+.stages{position:relative;height:22px;margin-top:6px}
+.stage{position:absolute;top:0;height:20px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--line);overflow:hidden;color:var(--mut);font-size:10px}
+.stage i{font-style:normal;position:absolute;left:6px;top:2px}
+.stage.on{background:rgba(255,194,14,.22);border-color:var(--acc);color:var(--acc)}
+.stage.done{background:rgba(255,255,255,.10);color:var(--txt)}
+#loading{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(5,7,15,.82);font-size:15px}
+#loading.hidden{display:none}
+.spin{width:30px;height:30px;border:3px solid #2a3558;border-top-color:var(--acc);border-radius:50%;margin:0 auto 12px;animation:sp 0.9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.report{right:0;top:0;bottom:0;width:min(760px,100vw);z-index:15;background:rgba(8,12,25,.94);border-left:1px solid var(--line);overflow:auto;padding:0 18px 40px;backdrop-filter:blur(10px)}
+.report.hidden{display:none}
+.report header{position:sticky;top:0;background:rgba(8,12,25,.97);display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);z-index:2}
+.report h4{margin:20px 0 8px;font-size:13px;letter-spacing:.3px;color:var(--acc)}
+.sum{margin:12px 0;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
+.sum.ok{background:rgba(63,185,80,.12)}.sum.bad{background:rgba(255,77,79,.12);border-color:rgba(255,77,79,.5)}
+table.t{width:100%;border-collapse:collapse;font-size:12px}
+table.t td,table.t th{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+table.t th{color:var(--mut);font-weight:600}
+table.t td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.ok td:first-child{border-left:3px solid var(--ok)}
+table.t tr.bad td:first-child{border-left:3px solid var(--bad)}
+table.t tr.warn td:first-child{border-left:3px solid var(--warn)}
+table.t tr.designed td:first-child{border-left:3px solid #5b8def}
+table.t .d{color:var(--mut);font-size:11px;margin-top:2px}
+tr[data-conf]{cursor:pointer}tr[data-conf]:hover td{background:rgba(255,77,79,.08)}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:999px;border:1px solid var(--line);color:var(--mut)}
+.tag.BRIEF{color:#7db4ff;border-color:#2f5ea8}.tag.DERIVED{color:#7fe0c9;border-color:#2c7f6e}.tag.REGRECALL,.tag.REGCHECK,.tag.ESTREGRECALL{color:#f1c768;border-color:#8a6a1c}
+.tag.KIND{color:#ffb3b4;border-color:#a33}
+#repClose{font-size:18px;padding:2px 10px}
+@media (max-width:760px){.right{max-width:calc(100vw - 32px)}.title small{display:none}.stages{display:none}}
+</style>
+<script type="importmap">
+{"imports":{
+ "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+ "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+ "three-mesh-bvh":"https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.3/build/index.module.js"}}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"></div>
+<script type="module">
+var __defProp = Object.defineProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
+// build_src/app.mjs
+import * as THREE3 from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
+
+// build_src/core.mjs
+import { ShapeUtils, Vector2 } from "three";
+/*! ============================================================================ */
+/*! core.mjs — math helpers + double-precision mesh accumulator + generic builders */
+/*! All geometry here is authored in millimetres (spec units), frame B. */
+/*! ============================================================================ */
+var DEG = Math.PI / 180;
+var TAU = Math.PI * 2;
+var sgnPow = (v, p) => v === 0 ? 0 : (v < 0 ? -1 : 1) * Math.pow(Math.abs(v), p);
+var clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+/*! smoothstep easing e(s) = s^2 (3 - 2 s) — §7.1 */
+var smoothstep = (s) => {
+  s = clamp(s, 0, 1);
+  return s * s * (3 - 2 * s);
+};
+/*! ---- small vector helpers on plain arrays --------------------------------- */
+var v3 = {
+  add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  mul: (a, k) => [a[0] * k, a[1] * k, a[2] * k],
+  dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+  len: (a) => Math.hypot(a[0], a[1], a[2]),
+  norm: (a) => {
+    const l = Math.hypot(a[0], a[1], a[2]);
+    return [a[0] / l, a[1] / l, a[2] / l];
+  },
+  lerp: (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t],
+  madd: (a, b, k) => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]
+};
+/*! Lanczos Gamma (g = 7) */
+/*! Area of the superellipse |x/a|^n + |y/b|^n = 1  —  §4.1 */
+/*! piecewise-linear interpolation of a numeric field over stations (sorted monotone in `key`) */
+function stationInterp(st, zKey, z, field) {
+  const n = st.length;
+  for (let i = 0; i < n - 1; i++) {
+    const a = st[i], b = st[i + 1];
+    const lo = Math.min(a[zKey], b[zKey]), hi = Math.max(a[zKey], b[zKey]);
+    if (z >= lo - 1e-9 && z <= hi + 1e-9) {
+      const t = (z - a[zKey]) / (b[zKey] - a[zKey]);
+      return a[field] + (b[field] - a[field]) * t;
+    }
+  }
+  throw new Error(`stationInterp: z=${z} outside stations`);
+}
+/*! ============================================================================ */
+/*! Mesh accumulator (double precision, indexed triangles) */
+/*! ============================================================================ */
+var Mesh = class _Mesh {
+  constructor(name = "") {
+    this.name = name;
+    this.p = [];
+    this.i = [];
+  }
+  v(x, y, z) {
+    this.p.push(x, y, z);
+    return this.p.length / 3 - 1;
+  }
+  tri(a, b, c) {
+    this.i.push(a, b, c);
+    return this;
+  }
+  quad(a, b, c, d) {
+    this.i.push(a, b, c, a, c, d);
+    return this;
+  }
+  get nv() {
+    return this.p.length / 3;
+  }
+  get nt() {
+    return this.i.length / 3;
+  }
+  append(o) {
+    const b = this.nv;
+    for (let k = 0; k < o.p.length; k++) this.p.push(o.p[k]);
+    for (let k = 0; k < o.i.length; k++) this.i.push(o.i[k] + b);
+    return this;
+  }
+  clone(name = this.name) {
+    const m = new _Mesh(name);
+    m.p = this.p.slice();
+    m.i = this.i.slice();
+    return m;
+  }
+  transform(fn) {
+    const p = this.p;
+    for (let k = 0; k < p.length; k += 3) {
+      const r = fn(p[k], p[k + 1], p[k + 2]);
+      p[k] = r[0];
+      p[k + 1] = r[1];
+      p[k + 2] = r[2];
+    }
+    return this;
+  }
+  translate(dx, dy, dz) {
+    const p = this.p;
+    for (let k = 0; k < p.length; k += 3) {
+      p[k] += dx;
+      p[k + 1] += dy;
+      p[k + 2] += dz;
+    }
+    return this;
+  }
+  /*! mirror x -> -x and restore outward winding */
+  mirrorX() {
+    const p = this.p;
+    for (let k = 0; k < p.length; k += 3) p[k] = -p[k];
+    return this.flip();
+  }
+  flip() {
+    const t = this.i;
+    for (let k = 0; k < t.length; k += 3) {
+      const q = t[k + 1];
+      t[k + 1] = t[k + 2];
+      t[k + 2] = q;
+    }
+    return this;
+  }
+  /*! signed volume (closed outward-wound mesh => positive) */
+  volume() {
+    const p = this.p, t = this.i;
+    let vol = 0;
+    for (let k = 0; k < t.length; k += 3) {
+      const a = t[k] * 3, b = t[k + 1] * 3, c = t[k + 2] * 3;
+      vol += (p[a] * (p[b + 1] * p[c + 2] - p[b + 2] * p[c + 1]) - p[a + 1] * (p[b] * p[c + 2] - p[b + 2] * p[c]) + p[a + 2] * (p[b] * p[c + 1] - p[b + 1] * p[c])) / 6;
+    }
+    return vol;
+  }
+  /*! for watertight solids: flip winding if the signed volume is negative */
+  orientOutward() {
+    if (this.volume() < 0) this.flip();
+    return this;
+  }
+  /*!
+   * Make triangle winding consistent across shared edges (BFS per connected component), then flip each
+   * closed component so its signed volume is positive (outward normals).
+   */
+  orientManifold() {
+    const t = this.i, nT = t.length / 3, N = this.nv;
+    const em = /* @__PURE__ */ new Map();
+    const key2 = (a, b) => a < b ? a * N + b : b * N + a;
+    for (let k = 0; k < nT; k++) for (let e = 0; e < 3; e++) {
+      const kk = key2(t[3 * k + e], t[3 * k + (e + 1) % 3]);
+      const l = em.get(kk);
+      if (l) l.push(k);
+      else em.set(kk, [k]);
+    }
+    const seen = new Uint8Array(nT);
+    const dirOf = (k, a, b) => {
+      for (let e = 0; e < 3; e++) {
+        const x = t[3 * k + e], y = t[3 * k + (e + 1) % 3];
+        if (x === a && y === b) return 1;
+        if (x === b && y === a) return -1;
+      }
+      return 0;
+    };
+    const p = this.p;
+    for (let s = 0; s < nT; s++) {
+      if (seen[s]) continue;
+      seen[s] = 1;
+      const stack = [s], comp = [s];
+      while (stack.length) {
+        const k = stack.pop();
+        for (let e = 0; e < 3; e++) {
+          const a = t[3 * k + e], b = t[3 * k + (e + 1) % 3];
+          const nb = em.get(key2(a, b));
+          if (!nb) continue;
+          for (const q of nb) {
+            if (q === k || seen[q]) continue;
+            if (dirOf(q, a, b) === 1) {
+              const tmp = t[3 * q + 1];
+              t[3 * q + 1] = t[3 * q + 2];
+              t[3 * q + 2] = tmp;
+            }
+            seen[q] = 1;
+            stack.push(q);
+            comp.push(q);
+          }
+        }
+      }
+      let vol = 0;
+      for (const k of comp) {
+        const a = t[3 * k] * 3, b = t[3 * k + 1] * 3, c = t[3 * k + 2] * 3;
+        vol += (p[a] * (p[b + 1] * p[c + 2] - p[b + 2] * p[c + 1]) - p[a + 1] * (p[b] * p[c + 2] - p[b + 2] * p[c]) + p[a + 2] * (p[b] * p[c + 1] - p[b + 1] * p[c])) / 6;
+      }
+      if (vol < 0) for (const k of comp) {
+        const tmp = t[3 * k + 1];
+        t[3 * k + 1] = t[3 * k + 2];
+        t[3 * k + 2] = tmp;
+      }
+    }
+    return this;
+  }
+  area() {
+    const p = this.p, t = this.i;
+    let A = 0;
+    for (let k = 0; k < t.length; k += 3) {
+      const a = t[k] * 3, b = t[k + 1] * 3, c = t[k + 2] * 3;
+      const ux = p[b] - p[a], uy = p[b + 1] - p[a + 1], uz = p[b + 2] - p[a + 2];
+      const wx = p[c] - p[a], wy = p[c + 1] - p[a + 1], wz = p[c + 2] - p[a + 2];
+      A += 0.5 * Math.hypot(uy * wz - uz * wy, uz * wx - ux * wz, ux * wy - uy * wx);
+    }
+    return A;
+  }
+  bbox() {
+    const p = this.p;
+    const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+    for (let k = 0; k < p.length; k += 3) for (let a = 0; a < 3; a++) {
+      const v = p[k + a];
+      if (v < mn[a]) mn[a] = v;
+      if (v > mx[a]) mx[a] = v;
+    }
+    return { min: mn, max: mx };
+  }
+  /*! volume centroid for a closed mesh, or area centroid fallback */
+  centroid() {
+    const p = this.p, t = this.i;
+    let V2 = 0;
+    const c = [0, 0, 0];
+    for (let k = 0; k < t.length; k += 3) {
+      const a = t[k] * 3, b = t[k + 1] * 3, d = t[k + 2] * 3;
+      const v = (p[a] * (p[b + 1] * p[d + 2] - p[b + 2] * p[d + 1]) - p[a + 1] * (p[b] * p[d + 2] - p[b + 2] * p[d]) + p[a + 2] * (p[b] * p[d + 1] - p[b + 1] * p[d])) / 6;
+      V2 += v;
+      for (let j = 0; j < 3; j++) c[j] += v * (p[a + j] + p[b + j] + p[d + j]) / 4;
+    }
+    if (Math.abs(V2) < 1e-9) return null;
+    return [c[0] / V2, c[1] / V2, c[2] / V2];
+  }
+  /*! drop triangles for which keep(cx,cy,cz, a,b,c)=false and compact vertices */
+  filterTris(keep) {
+    const p = this.p, t = this.i, out = [];
+    for (let k = 0; k < t.length; k += 3) {
+      const a = t[k] * 3, b = t[k + 1] * 3, c = t[k + 2] * 3;
+      const cx = (p[a] + p[b] + p[c]) / 3, cy = (p[a + 1] + p[b + 1] + p[c + 1]) / 3, cz = (p[a + 2] + p[b + 2] + p[c + 2]) / 3;
+      if (keep(cx, cy, cz, a, b, c)) out.push(t[k], t[k + 1], t[k + 2]);
+    }
+    this.i = out;
+    return this.compact();
+  }
+  compact() {
+    const map = new Int32Array(this.nv).fill(-1);
+    const np = [];
+    const ni = this.i.map((idx) => {
+      if (map[idx] < 0) {
+        map[idx] = np.length / 3;
+        np.push(this.p[idx * 3], this.p[idx * 3 + 1], this.p[idx * 3 + 2]);
+      }
+      return map[idx];
+    });
+    this.p = np;
+    this.i = ni;
+    return this;
+  }
+};
+/*!
+ * Exact removal of the region {F < 0} from a triangle mesh (marching triangles).
+ * Triangles fully inside are dropped, mixed triangles are clipped along F = 0 (crossing found by bisection on the chord),
+ * new vertices are shared across edges so the cut boundary is watertight.
+ */
+function clipTriangles(mesh, F) {
+  const p = mesh.p, t = mesh.i;
+  const nv0 = mesh.nv;
+  const fv = new Float64Array(nv0);
+  for (let i = 0; i < nv0; i++) fv[i] = F(p[3 * i], p[3 * i + 1], p[3 * i + 2]);
+  const edgeMap = /* @__PURE__ */ new Map();
+  const out = [];
+  const cross = (i, j) => {
+    const a = Math.min(i, j), b = Math.max(i, j), key2 = a * nv0 + b;
+    let id = edgeMap.get(key2);
+    if (id !== void 0) return id;
+    let lo = 0, hi = 1;
+    const fa = fv[a];
+    const P = (s) => [p[3 * a] + (p[3 * b] - p[3 * a]) * s, p[3 * a + 1] + (p[3 * b + 1] - p[3 * a + 1]) * s, p[3 * a + 2] + (p[3 * b + 2] - p[3 * a + 2]) * s];
+    for (let k = 0; k < 40; k++) {
+      const m = (lo + hi) / 2;
+      const q2 = P(m);
+      const fm = F(q2[0], q2[1], q2[2]);
+      if (fm < 0 === fa < 0) lo = m;
+      else hi = m;
+    }
+    const q = P((lo + hi) / 2);
+    id = mesh.v(q[0], q[1], q[2]);
+    edgeMap.set(key2, id);
+    return id;
+  };
+  for (let k = 0; k < t.length; k += 3) {
+    const a = t[k], b = t[k + 1], c = t[k + 2];
+    const ina = fv[a] < 0, inb = fv[b] < 0, inc = fv[c] < 0;
+    const n = (ina ? 1 : 0) + (inb ? 1 : 0) + (inc ? 1 : 0);
+    if (n === 0) {
+      out.push(a, b, c);
+      continue;
+    }
+    if (n === 3) continue;
+    /*! rotate so that the odd vertex is first */
+    let v = [a, b, c], inside = [ina, inb, inc];
+    if (n === 1) {
+      const r = inside.indexOf(true);
+      v = [v[r], v[(r + 1) % 3], v[(r + 2) % 3]];
+      const p1 = cross(v[0], v[1]), p2 = cross(v[0], v[2]);
+      out.push(p1, v[1], v[2], p1, v[2], p2);
+    } else {
+      const r = inside.indexOf(false);
+      v = [v[r], v[(r + 1) % 3], v[(r + 2) % 3]];
+      const p1 = cross(v[0], v[1]), p2 = cross(v[0], v[2]);
+      out.push(v[0], p1, p2);
+    }
+  }
+  mesh.i = out;
+  return mesh.compact();
+}
+/*! ============================================================================ */
+/*! Grid helpers */
+/*! ============================================================================ */
+/*! add rows x cols vertices from fn(r,c)->[x,y,z]; returns index accessor */
+function addGrid(mesh, rows, cols, fn) {
+  const base = mesh.nv;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const q = fn(r, c);
+    mesh.v(q[0], q[1], q[2]);
+  }
+  return (r, c) => base + r * cols + c;
+}
+/*! stitch a vertex grid into quads. wrap closes the column loop. flip reverses winding */
+function stitchGrid(mesh, idx, rows, cols, { wrap = false, flip = false } = {}) {
+  const nc = wrap ? cols : cols - 1;
+  for (let r = 0; r < rows - 1; r++) for (let c = 0; c < nc; c++) {
+    const a = idx(r, c), b = idx(r, (c + 1) % cols), d = idx(r + 1, (c + 1) % cols), e = idx(r + 1, c);
+    if (flip) mesh.quad(a, e, d, b);
+    else mesh.quad(a, b, d, e);
+  }
+}
+/*! ============================================================================ */
+/*! 2-D polygon utilities */
+/*! ============================================================================ */
+function pointInPoly(pt, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+    if (yi > pt[1] !== yj > pt[1] && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+/*! triangulate a polygon (contour + holes). Returns {pts, tris} where tris index into pts. */
+function triangulate2D(contour, holes = []) {
+  const c = contour.map((p) => new Vector2(p[0], p[1]));
+  const h = holes.map((hh) => hh.map((p) => new Vector2(p[0], p[1])));
+  const tris = ShapeUtils.triangulateShape(c, h);
+  const pts = contour.slice();
+  for (const hh of holes) for (const p of hh) pts.push(p);
+  return { pts, tris };
+}
+/*!
+ * Extrude a 2-D polygon (with holes) into a closed solid.
+ * frame: { o:[x,y,z], U:[...], V:[...], W:[...] }  (W = extrusion direction, any length = unit)
+ * point(u,v,w) = o + u U + v V + w W,  w in {0, depth}
+ */
+function extrudePolygon(contour, holes, frame2, depth, name = "") {
+  const { o, U, V: V2, W } = frame2;
+  const m = new Mesh(name);
+  const P = (u, v, w) => [o[0] + u * U[0] + v * V2[0] + w * W[0], o[1] + u * U[1] + v * V2[1] + w * W[1], o[2] + u * U[2] + v * V2[2] + w * W[2]];
+  const { pts, tris } = triangulate2D(contour, holes);
+  const n = pts.length;
+  const iBot = [], iTop = [];
+  for (const p of pts) {
+    const a = P(p[0], p[1], 0);
+    iBot.push(m.v(a[0], a[1], a[2]));
+    const b = P(p[0], p[1], depth);
+    iTop.push(m.v(b[0], b[1], b[2]));
+  }
+  for (const t of tris) {
+    m.tri(iBot[t[0]], iBot[t[1]], iBot[t[2]]);
+    m.tri(iTop[t[0]], iTop[t[2]], iTop[t[1]]);
+  }
+  const walls = (ring, off2) => {
+    for (let i = 0; i < ring.length; i++) {
+      const a = off2 + i, b = off2 + (i + 1) % ring.length;
+      m.quad(iBot[a], iBot[b], iTop[b], iTop[a]);
+    }
+  };
+  walls(contour, 0);
+  let off = contour.length;
+  for (const hh of holes) {
+    walls(hh, off);
+    off += hh.length;
+  }
+  /*! wall winding may disagree with cap winding after earcut: normalise by volume sign per construction */
+  /*! (rebuild consistently: cap triangles from earcut are CCW or CW; walls follow ring order). */
+  return m.orientManifold();
+}
+/*! ============================================================================ */
+/*! Superellipse helpers */
+/*! ============================================================================ */
+/*! point on superellipse of half-axes (a,b) exponent n at angle phi (§4.1) */
+function superPoint(a, b, n, phi) {
+  return [a * sgnPow(Math.cos(phi), 2 / n), b * sgnPow(Math.sin(phi), 2 / n)];
+}
+/*! ============================================================================ */
+/*! Closed superellipse loft (§4.1) */
+/*! st: [{z, yb, yt, a, n}] ordered monotone in z */
+/*! ============================================================================ */
+function ringZs(zs, nSeg, extra = []) {
+  const out = [];
+  for (let i = 0; i < zs.length - 1; i++) {
+    const z0 = zs[i], z1 = zs[i + 1];
+    for (let k = 0; k < nSeg; k++) out.push(z0 + (z1 - z0) * k / nSeg);
+  }
+  out.push(zs[zs.length - 1]);
+  for (const e of extra) out.push(e);
+  /*! sort in the direction of travel */
+  const dir = Math.sign(zs[zs.length - 1] - zs[0]) || 1;
+  out.sort((x, y) => dir * (x - y));
+  /*! unique */
+  const u = [];
+  for (const z of out) if (!u.length || Math.abs(z - u[u.length - 1]) > 1e-6) u.push(z);
+  return u;
+}
+function loftSection(st, z) {
+  const yb = stationInterp(st, "z", z, "yb"), yt = stationInterp(st, "z", z, "yt");
+  return { yb, yt, a: stationInterp(st, "z", z, "a"), n: stationInterp(st, "z", z, "n"), yc: (yb + yt) / 2, b: (yt - yb) / 2 };
+}
+/*!
+ * loftSuperellipse
+ * opts: nPhi (64), nSeg (10 => 9 interior rings between stations, spec requires >= 8), capFront, capBack
+ *       phis: explicit list of phi values in [0,2pi) (overrides nPhi), extraZ: extra ring z's
+ */
+function loftSuperellipse(st, o = {}) {
+  const nSeg = o.nSeg ?? 10;
+  const zs = ringZs(st.map((s) => s.z), nSeg, o.extraZ ?? []);
+  const phis = o.phis ?? Array.from({ length: o.nPhi ?? 64 }, (_, k) => TAU * k / (o.nPhi ?? 64));
+  const nc = phis.length;
+  const m = new Mesh(o.name || "loft");
+  const secs = zs.map((z) => ({ z, ...loftSection(st, z) }));
+  const idx = addGrid(m, zs.length, nc, (r, c) => {
+    const s = secs[r];
+    const q = superPoint(s.a, s.b, s.n, phis[c]);
+    return [q[0], s.yc + q[1], s.z];
+  });
+  const dir = Math.sign(zs[zs.length - 1] - zs[0]);
+  /*! winding: with increasing z and increasing phi the quad order (a,b,d,e) is outward */
+  stitchGrid(m, idx, zs.length, nc, { wrap: true, flip: dir < 0 });
+  const cap = (r, faceUp) => {
+    const s = secs[r];
+    const ci = m.v(0, s.yc, s.z);
+    for (let c = 0; c < nc; c++) {
+      const a = idx(r, c), b = idx(r, (c + 1) % nc);
+      if (faceUp) m.tri(ci, a, b);
+      else m.tri(ci, b, a);
+    }
+  };
+  if (o.capFront !== false) cap(0, dir < 0);
+  if (o.capBack !== false) cap(zs.length - 1, dir > 0);
+  return { mesh: m, zs, secs, phis, idx, nc };
+}
+/*! ============================================================================ */
+/*! Lathe — revolve a closed (x, r) profile about the +X axis through centre c. */
+/*!   P = c + (x, r cos(phi), r sin(phi)) */
+/*! ============================================================================ */
+function lathe(profile, c, nSeg = 64, name = "") {
+  const m = new Mesh(name);
+  const np = profile.length;
+  const idx = addGrid(m, nSeg, np, (k, j) => {
+    const ph = TAU * k / nSeg;
+    const [x, r] = profile[j];
+    return [c[0] + x, c[1] + r * Math.cos(ph), c[2] + r * Math.sin(ph)];
+  });
+  for (let k = 0; k < nSeg; k++) for (let j = 0; j < np; j++) {
+    const k2 = (k + 1) % nSeg, j2 = (j + 1) % np;
+    m.quad(idx(k, j), idx(k2, j), idx(k2, j2), idx(k, j2));
+  }
+  return m.orientOutward();
+}
+/*! ============================================================================ */
+/*! Oriented box: centre c, unit axes ax,ay,az, half extents h */
+/*! ============================================================================ */
+function orientedBox(c, ax, ay, az, h, name = "") {
+  const m = new Mesh(name);
+  const ids = [];
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+    ids.push(m.v(
+      c[0] + sx * h[0] * ax[0] + sy * h[1] * ay[0] + sz * h[2] * az[0],
+      c[1] + sx * h[0] * ax[1] + sy * h[1] * ay[1] + sz * h[2] * az[1],
+      c[2] + sx * h[0] * ax[2] + sy * h[1] * ay[2] + sz * h[2] * az[2]
+    ));
+  }
+  /*! index = sx*4 + sy*2 + sz  with (-1 -> 0, +1 -> 1) */
+  const I = (sx, sy, sz) => ids[(sx > 0 ? 4 : 0) + (sy > 0 ? 2 : 0) + (sz > 0 ? 1 : 0)];
+  const face = (a, b, c2, d) => m.quad(a, b, c2, d);
+  face(I(-1, -1, -1), I(-1, -1, 1), I(-1, 1, 1), I(-1, 1, -1));
+  face(I(1, -1, -1), I(1, 1, -1), I(1, 1, 1), I(1, -1, 1));
+  face(I(-1, -1, -1), I(1, -1, -1), I(1, -1, 1), I(-1, -1, 1));
+  face(I(-1, 1, -1), I(-1, 1, 1), I(1, 1, 1), I(1, 1, -1));
+  face(I(-1, -1, -1), I(-1, 1, -1), I(1, 1, -1), I(1, -1, -1));
+  face(I(-1, -1, 1), I(1, -1, 1), I(1, 1, 1), I(-1, 1, 1));
+  return m.orientOutward();
+}
+function axisBox(x0, x1, y0, y1, z0, z1, name = "") {
+  return orientedBox(
+    [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2],
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [Math.abs(x1 - x0) / 2, Math.abs(y1 - y0) / 2, Math.abs(z1 - z0) / 2],
+    name
+  );
+}
+/*! ============================================================================ */
+/*! Cylinder (solid) between two points, radius r */
+/*! ============================================================================ */
+/*! ============================================================================ */
+/*! §4.4 NACA 4-digit airfoil (inverted for downforce: m -> -m) */
+/*! Returns a closed loop of (X,Y) in chord-normalised coordinates, LE first, */
+/*! upper surface to TE then lower surface back (TE vertex appears once). */
+/*! ============================================================================ */
+function nacaLoop(code, inverted = true, N = 40) {
+  const d1 = +code[0], d2 = +code[1], tt = +code.slice(2, 4);
+  let m = d1 / 100;
+  const p = d2 / 10 || 0.4, t = tt / 100;
+  if (inverted) m = -m;
+  const xs = Array.from({ length: N + 1 }, (_, k) => (1 - Math.cos(Math.PI * k / N)) / 2);
+  const up = [], lo = [];
+  for (const x of xs) {
+    const yt = 5 * t * (0.2969 * Math.sqrt(x) - 0.126 * x - 0.3516 * x * x + 0.2843 * x ** 3 - 0.1036 * x ** 4);
+    let yc = 0, dyc = 0;
+    if (m !== 0) {
+      if (x < p) {
+        yc = m / (p * p) * (2 * p * x - x * x);
+        dyc = 2 * m / (p * p) * (p - x);
+      } else {
+        yc = m / (1 - p) ** 2 * (1 - 2 * p + 2 * p * x - x * x);
+        dyc = 2 * m / (1 - p) ** 2 * (p - x);
+      }
+    }
+    const psi = Math.atan(dyc);
+    up.push([x - yt * Math.sin(psi), yc + yt * Math.cos(psi)]);
+    lo.push([x + yt * Math.sin(psi), yc - yt * Math.cos(psi)]);
+  }
+  /*! loop: upper LE->TE, then lower TE->LE (skip TE dup and LE dup) */
+  const loop = up.slice();
+  for (let k = N - 1; k >= 1; k--) loop.push(lo[k]);
+  return loop;
+}
+/*!
+ * Place a chord-normalised loop in the (z,y) side view (§4.4).
+ *   c-hat = (-cos a, +sin a), n-hat = (+sin a, +cos a)
+ *   (z,y) = LE + C (X c-hat + Y n-hat)
+ */
+function placeAirfoil(loop, LEz, LEy, C, alphaDeg) {
+  const a = alphaDeg * DEG, ca = Math.cos(a), sa = Math.sin(a);
+  return loop.map(([X, Y]) => [
+    LEz + C * (X * -ca + Y * sa),
+    LEy + C * (X * sa + Y * ca)
+  ]);
+}
+/*!
+ * Extrude a (z,y) polygon along X between x0(z) and x1(z) (functions allow trimming at slanted endplates).
+ * Builds a closed solid: wall ring + two cap surfaces (height fields).
+ */
+function extrudeZYAlongX(poly, x0, x1, name = "") {
+  const f0 = typeof x0 === "function" ? x0 : () => x0;
+  const f1 = typeof x1 === "function" ? x1 : () => x1;
+  const m = new Mesh(name);
+  const n = poly.length;
+  const a = poly.map(([z, y]) => m.v(f0(z), y, z));
+  const b = poly.map(([z, y]) => m.v(f1(z), y, z));
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    m.quad(a[i], a[j], b[j], b[i]);
+  }
+  const { tris } = triangulate2D(poly.map((p) => [p[0], p[1]]));
+  for (const t of tris) {
+    m.tri(a[t[0]], a[t[1]], a[t[2]]);
+    m.tri(b[t[0]], b[t[2]], b[t[1]]);
+  }
+  return m.orientManifold();
+}
+/*! flat plate: polygon in (z,y) extruded along X from x0 to x1 (constant) */
+function plateZY(poly, x0, x1, name = "") {
+  return extrudeZYAlongX(poly, x0, x1, name);
+}
+/*! ============================================================================ */
+/*! §4.5 swept suspension member: elliptical section (chord C, thickness tau), flat caps */
+/*! ============================================================================ */
+function sweptMember(A, B, C, tau, name = "", nU = 8, nW = 24) {
+  const e = v3.norm(v3.sub(B, A));
+  const m_ = v3.norm(v3.cross([0, 1, 0], e));
+  const n_ = v3.cross(e, m_);
+  const m = new Mesh(name);
+  const idx = addGrid(m, nU + 1, nW, (r, c) => {
+    const u = r / nU, w = TAU * c / nW;
+    const P = v3.lerp(A, B, u);
+    return v3.add(v3.add(P, v3.mul(m_, C / 2 * Math.cos(w))), v3.mul(n_, tau / 2 * Math.sin(w)));
+  });
+  stitchGrid(m, idx, nU + 1, nW, { wrap: true });
+  const cA = m.v(...A), cB = m.v(...B);
+  for (let c = 0; c < nW; c++) {
+    const c2 = (c + 1) % nW;
+    m.tri(cA, idx(0, c2), idx(0, c));
+    m.tri(cB, idx(nU, c), idx(nU, c2));
+  }
+  m.orientOutward();
+  m.frame = { e, m: m_, n: n_, A, B, C, tau };
+  return m;
+}
+/*! ============================================================================ */
+/*! §4.6 Bézier sweep with flat-top D section */
+/*! ============================================================================ */
+function bezier(P0, P1, P2, P3, u) {
+  const w0 = (1 - u) ** 3, w1 = 3 * (1 - u) ** 2 * u, w2 = 3 * (1 - u) * u * u, w3 = u ** 3;
+  return [0, 1, 2].map((k) => w0 * P0[k] + w1 * P1[k] + w2 * P2[k] + w3 * P3[k]);
+}
+function bezierD(P0, P1, P2, P3, u) {
+  const w0 = 3 * (1 - u) ** 2, w1 = 6 * (1 - u) * u, w2 = 3 * u * u;
+  return [0, 1, 2].map((k) => w0 * (P1[k] - P0[k]) + w1 * (P2[k] - P1[k]) + w2 * (P3[k] - P2[k]));
+}
+function bezierFrame(P0, P1, P2, P3, u) {
+  const t = v3.norm(bezierD(P0, P1, P2, P3, u));
+  const m = v3.norm(v3.cross([0, 1, 0], t));
+  const n = v3.cross(t, m);
+  return { t, m, n };
+}
+/*! D section point (§4.6): upper superellipse n=8 flat top, lower half ellipse */
+function dSection(alpha, a, bt, bb) {
+  const ca = Math.cos(alpha), sa = Math.sin(alpha);
+  if (sa >= 0) return [a * sgnPow(ca, 1 / 4), bt * Math.pow(Math.abs(sa), 1 / 4)];
+  return [a * ca, bb * sa];
+}
+function bezierSweepD(P0, P1, P2, P3, { a = 55, bt = 18, bb = 32, nU = 64, nA = 48, u0 = 0, u1 = 1, offset = 0, name = "", capStart = false, capEnd = false } = {}) {
+  const m = new Mesh(name);
+  const idx = addGrid(m, nU + 1, nA, (r, c) => {
+    const u = u0 + (u1 - u0) * r / nU;
+    const B = bezier(P0, P1, P2, P3, u);
+    const { m: mh, n: nh } = bezierFrame(P0, P1, P2, P3, u);
+    const al = TAU * c / nA;
+    let [dm, dn] = dSection(al, a, bt, bb);
+    if (offset) {
+      const L = Math.hypot(dm, dn) || 1;
+      dm += offset * dm / L;
+      dn += offset * dn / L;
+    }
+    return [B[0] + dm * mh[0] + dn * nh[0], B[1] + dm * mh[1] + dn * nh[1], B[2] + dm * mh[2] + dn * nh[2]];
+  });
+  stitchGrid(m, idx, nU + 1, nA, { wrap: true });
+  const cap = (r, up) => {
+    const u = u0 + (u1 - u0) * r / nU;
+    const B = bezier(P0, P1, P2, P3, u);
+    const ci = m.v(...B);
+    for (let c = 0; c < nA; c++) {
+      const c2 = (c + 1) % nA;
+      if (up) m.tri(ci, idx(r, c), idx(r, c2));
+      else m.tri(ci, idx(r, c2), idx(r, c));
+    }
+  };
+  if (capStart) cap(0, true);
+  if (capEnd) cap(nU, false);
+  /*! orientation: pipe walls (open) take the 'closed' fix only when capped */
+  if (capStart && capEnd) m.orientOutward();
+  else {
+    const t = m.i;
+    const p = m.p;
+    const k = 0;
+    const a_ = t[k] * 3, b_ = t[k + 1] * 3, c_ = t[k + 2] * 3;
+    const nx = (p[b_ + 1] - p[a_ + 1]) * (p[c_ + 2] - p[a_ + 2]) - (p[b_ + 2] - p[a_ + 2]) * (p[c_ + 1] - p[a_ + 1]);
+    const ny = (p[b_ + 2] - p[a_ + 2]) * (p[c_] - p[a_]) - (p[b_] - p[a_]) * (p[c_ + 2] - p[a_ + 2]);
+    const nz = (p[b_] - p[a_]) * (p[c_ + 1] - p[a_ + 1]) - (p[b_ + 1] - p[a_ + 1]) * (p[c_] - p[a_]);
+    const B0 = bezier(P0, P1, P2, P3, u0);
+    const out = (p[a_] - B0[0]) * nx + (p[a_ + 1] - B0[1]) * ny + (p[a_ + 2] - B0[2]) * nz;
+    if (out < 0) m.flip();
+  }
+  return m;
+}
+/*! ============================================================================ */
+/*! §4.7 superellipse-torus tyre */
+/*! ============================================================================ */
+function tyreTorus(C, W, Rw, Rrim, { nPhi = 64, nAlpha = 48, name = "", phase = 0 } = {}) {
+  const H = Rw - Rrim, rm = Rrim + H / 2;
+  const m = new Mesh(name);
+  const idx = addGrid(m, nPhi, nAlpha, (k, j) => {
+    const ph = phase + TAU * k / nPhi, al = TAU * j / nAlpha;
+    const xi = W / 2 * sgnPow(Math.cos(al), 2 / 3);
+    const rho2 = rm + H / 2 * sgnPow(Math.sin(al), 2 / 3);
+    return [C[0] + xi, C[1] + rho2 * Math.cos(ph), C[2] + rho2 * Math.sin(ph)];
+  });
+  for (let k = 0; k < nPhi; k++) for (let j = 0; j < nAlpha; j++) {
+    const k2 = (k + 1) % nPhi, j2 = (j + 1) % nAlpha;
+    m.quad(idx(k, j), idx(k2, j), idx(k2, j2), idx(k, j2));
+  }
+  return m.orientOutward();
+}
+/*! ============================================================================ */
+/*! plan-region rasteriser: converts an implicit plan region into runs of quads at height y */
+/*! (used for gold foil patches).  test(x,z)->bool.  cell in mm. */
+/*! ============================================================================ */
+function rasterPatch(test, x0, x1, z0, z1, cell, y, name = "") {
+  const m = new Mesh(name);
+  const nx = Math.ceil((x1 - x0) / cell), nz = Math.ceil((z1 - z0) / cell);
+  for (let j = 0; j < nz; j++) {
+    const za = z0 + j * cell, zb = Math.min(z1, za + cell), zc = (za + zb) / 2;
+    let run = -1;
+    for (let i = 0; i <= nx; i++) {
+      const xa = x0 + i * cell, xc = xa + cell / 2;
+      const inside = i < nx && test(xc, zc);
+      if (inside && run < 0) run = i;
+      if (!inside && run >= 0) {
+        const xs = x0 + run * cell, xe = Math.min(x1, x0 + i * cell);
+        const a = m.v(xs, y, za), b = m.v(xe, y, za), c = m.v(xe, y, zb), d = m.v(xs, y, zb);
+        /*! normal +y : (a,d,c,b) */
+        m.quad(a, d, c, b);
+        run = -1;
+      }
+    }
+  }
+  return m;
+}
+
+// build_src/spec.mjs
+var spec_exports = {};
+__export(spec_exports, {
+  AIRBOX: () => AIRBOX,
+  BBOX_SPEC: () => BBOX_SPEC,
+  COCKPIT: () => COCKPIT,
+  COVER_ST: () => COVER_ST,
+  EXH: () => EXH,
+  EXPLODE: () => EXPLODE,
+  EXPLODE_dB_PRINTED: () => EXPLODE_dB_PRINTED,
+  FIN: () => FIN,
+  FLOOR: () => FLOOR,
+  FSUS: () => FSUS,
+  FW: () => FW,
+  FW_FOOT: () => FW_FOOT,
+  FW_PLATE: () => FW_PLATE,
+  FW_PYLON: () => FW_PYLON,
+  FW_STRUT: () => FW_STRUT,
+  GEARBOX: () => GEARBOX,
+  GROUND_LIFT: () => GROUND_LIFT,
+  K: () => K,
+  MASS: () => MASS,
+  MODELLED_TOTAL: () => MODELLED_TOTAL,
+  MONO_ST: () => MONO_ST,
+  NOSE_ST: () => NOSE_ST,
+  NOSE_TIP: () => NOSE_TIP,
+  PLANK: () => PLANK,
+  POD: () => POD,
+  POD_ST: () => POD_ST,
+  RAD: () => RAD,
+  RSUS: () => RSUS,
+  RW: () => RW,
+  WHEEL: () => WHEEL
+});
+/*! ============================================================================ */
+/*! spec.mjs — every number transcribed from rb7_math_spec.md (mm, deg unless stated) */
+/*! Tags: [BRIEF] [DERIVED] [EST] [CHOICE] [REG-RECALL] [REG-CHECK] as in the spec. */
+/*! ============================================================================ */
+var K = {
+  L: 3300,
+  // [BRIEF] wheelbase, horizontal on ground
+  Tf: 1450,
+  Tr: 1400,
+  // [BRIEF] track
+  Rw: 330,
+  // [BRIEF] tyre radius
+  WF: 345,
+  WR: 375,
+  // [EST] tyre widths
+  Rrim: 177,
+  // [EST ±5] rim flange radius (§4.7)
+  thetaDeg: 1.8,
+  // [BRIEF] rake
+  hF: 25,
+  // [EST ±10]
+  HD: 125
+  // [BRIEF] diffuser roof cap — locked at 125 by audit correction #1
+};
+K.theta = K.thetaDeg * DEG;
+K.s = Math.sin(K.theta);
+K.c = Math.cos(K.theta);
+/*! §2.1 datums (B frame) [DERIVED] */
+K.Z_FA = -K.Rw * K.s;
+K.Y_FA = K.Rw * K.c - K.hF;
+K.Z_RA = -K.Rw * K.s - K.L * K.c;
+K.Y_RA = K.Rw * K.c - K.L * K.s - K.hF;
+/*! ---- §5.1 monocoque ------------------------------------------------------- */
+var MONO_ST = [
+  { z: 350, yb: 300, yt: 640, a: 140, n: 3 },
+  { z: 100, yb: 205, yt: 660, a: 185, n: 4 },
+  { z: -330, yb: 60, yt: 660, a: 235, n: 4 },
+  { z: -700, yb: 60, yt: 650, a: 285, n: 4 },
+  { z: -1100, yb: 60, yt: 640, a: 300, n: 4 },
+  { z: -1450, yb: 60, yt: 665, a: 300, n: 4 },
+  { z: -2e3, yb: 60, yt: 600, a: 260, n: 4 }
+];
+var COCKPIT = { yMin: 520, zc: -850, hz: 425, hx: 225, p: 2.5 };
+/*! ---- §5.2 nose / front wing ---------------------------------------------- */
+var NOSE_ST = [
+  { z: 350, yb: 300, yt: 640, a: 140, n: 3 },
+  { z: 700, yb: 312, yt: 560, a: 120, n: 2.6 },
+  { z: 980, yb: 305, yt: 470, a: 90, n: 2.3 },
+  { z: 1135, yb: 315, yt: 420, a: 62, n: 2.2 }
+];
+var NOSE_TIP = { z0: 1135, len: 40, a: 62, b: 52.5, yc: 367.5 };
+/*! [CHOICE] elements: |x| span, LE(z,y), chord, alpha, NACA code (inverted) */
+var FW = {
+  neutral: { x: [0, 250], LE: [985, 110], C: 340, alpha: 0, code: "0010", inverted: false },
+  main: { x: [250, 840], LE: [985, 105], C: 300, alpha: 6, code: "6412" },
+  flap1: { x: [250, 840], LE: [696.6, 148.4], C: 200, alpha: 18, code: "4410" },
+  flap2: { x: [250, 840], LE: [516.4, 222.2], C: 120, alpha: 22, code: "4408" },
+  c1: { x: [620, 840], LE: [830, 215], C: 100, alpha: 10, code: "4409" },
+  c2: { x: [620, 840], LE: [741.5, 244.4], C: 70, alpha: 18, code: "4409" }
+};
+var FW_PLATE = { p0: [840, 985], p1: [900, 440], thick: 10, y0: 75, y1: 275, yTE: 140, sChamfer: 480 };
+var FW_FOOT = { y0: 75, y1: 80, width: 60, z0: 700, z1: 985 };
+var FW_PYLON = { x0: 75, x1: 85, z0: 800, z1: 1e3 };
+var FW_STRUT = { xs: [620, 835], thick: 6 };
+/*! ---- §5.3 cover ---------------------------------------------------------- */
+var COVER_ST = [
+  { z: -1250, a: 150, ys: 700, yb: 645, yt: 950, n: 2.5 },
+  { z: -1500, a: 230, ys: 660, yb: 635, yt: 948, n: 3 },
+  { z: -2e3, a: 270, ys: 560, yb: 530, yt: 860, n: 3.5 },
+  { z: -2300, a: 250, ys: 515, yb: 490, yt: 790, n: 3.5 },
+  { z: -2550, a: 225, ys: 465, yb: 440, yt: 700, n: 3.5 },
+  { z: -2850, a: 180, ys: 370, yb: 340, yt: 600, n: 3 },
+  { z: -3e3, a: 115, ys: 360, yb: 330, yt: 560, n: 2.5 },
+  { z: -3450, a: 80, ys: 340, yb: 320, yt: 430, n: 2.2 }
+];
+var AIRBOX = { hx: 70, hy: 75, yc: 850, p: 2.5, zFace: -1250 };
+var FIN = { half: 4, zFront: -1350, zRear: -3300, yTop: 950, zKnee: -2700, yRear: 880 };
+/*! ---- §5.4 pods ----------------------------------------------------------- */
+var POD_ST = [
+  { z: -1150, xi: 300, Xo: 600, Yb: 230, Ym: 400, Yt: 560 },
+  { z: -1400, xi: 300, Xo: 680, Yb: 120, Ym: 330, Yt: 580 },
+  { z: -1800, xi: 280, Xo: 660, Yb: 80, Ym: 300, Yt: 560 },
+  { z: -2050, xi: 265, Xo: 590, Yb: 75, Ym: 280, Yt: 525 },
+  { z: -2300, xi: 250, Xo: 510, Yb: 215, Ym: 300, Yt: 490 },
+  { z: -2550, xi: 225, Xo: 420, Yb: 225, Ym: 295, Yt: 440 },
+  { z: -2850, xi: 180, Xo: 260, Yb: 240, Ym: 275, Yt: 340 }
+];
+var POD = { nu: 3.5, nl: 2.2, wall: 3, lipR: 8 };
+/*! ---- §5.5 radiators ------------------------------------------------------ */
+var RAD = { C: [440, 330, -1720], psiDeg: 20, lamDeg: 12, thick: 50, height: 300, coreLen: 560, tankLen: 30 };
+/*! ---- §5.6 floor ---------------------------------------------------------- */
+var FLOOR = {
+  /*! right half plan polyline (z, x_f); start station uses the true axle datum */
+  outline: (zStart, zRA) => [[zStart, 250], [-650, 560], [-950, 700], [-2500, 700], [-2900, 620], [-2995, 620], [-3005, 490], [zRA, 490]],
+  stripHalf: 150,
+  stepY0: 50,
+  stepY1: 60,
+  wallY: [0, 50],
+  wallThick: 6,
+  // wall thickness not given: 6 = fence thickness (assumed)
+  topPlateZ: -2e3,
+  diffLen: 350,
+  diffHalf: 490,
+  roofThick: 8,
+  fenceThick: 6,
+  fenceX: [150, 320],
+  sideX: 490,
+  trough: { w: 50, depth: 8, path: [[560, -2935], [455, -2990], [445, -3280]] },
+  slot: { x: [420, 470], z: [-3300, -3180] },
+  foil: { lift: 0.5, band: 110, bandU0: 0.35, fanApex: [580, -2925], fanDir: [0.788, -0.6157], fanHalfDeg: 25, fanR: 150 }
+};
+/*! ---- §5.7 exhaust -------------------------------------------------------- */
+var EXH = {
+  P: [[170, 185, -2350], [230, 175, -2550], [420, 150, -2800], [580, 100, -2925]],
+  a: 55,
+  bt: 18,
+  bb: 32,
+  collectorR: 45,
+  collectorBack: 100,
+  sleeveLen: 250,
+  sleeveOff: 2
+};
+/*! ---- §5.8 front suspension (xp) ----------------------------------------- */
+var FSUS = {
+  WC: [725, 304.84, -10.37],
+  UBJ: [625, 454.84, -30],
+  LBJ: [645, 232, -5],
+  UF: [200, 470, 200],
+  UR: [240, 475, -250],
+  LF: [175, 265, 170],
+  LR: [245, 265, -270],
+  PRo: [628, 248, -32],
+  PRi: [110, 610, -80],
+  TRo: [630, 399.8, 94.6],
+  TRi: [170, 410, 110],
+  wb: { C: 60, tau: 20 },
+  push: { C: 40, tau: 16 },
+  track: { C: 36, tau: 14 },
+  slot: { a: [197, 561, -73.5], b: [179, 610, -80], r: 25 },
+  hole: { c: [183, 410, 110], half: 15 }
+};
+/*! ---- §5.9 rear suspension (xp) ------------------------------------------ */
+var RSUS = {
+  WC: [700, 201.18, -3308.74],
+  UBJ: [610, 391.18, -3308.74],
+  LBJ: [620, 121.18, -3298.74],
+  UF: [140, 400, -3050],
+  UR: [130, 405, -3420],
+  LF: [135, 150, -2950],
+  LR: [125, 150, -3480],
+  PLo: [600, 366.18, -3318.74],
+  PLi: [115, 105, -3060],
+  TLo: [615, 141.18, -3428.74],
+  TLi: [125, 165, -3500],
+  wb: { C: 60, tau: 20 },
+  pull: { C: 40, tau: 16 },
+  toe: { C: 36, tau: 14 }
+};
+var GEARBOX = { x: [-120, 120], y: [90, 310], z: [-3550, -2550] };
+/*! ---- §5.10 wheels -------------------------------------------------------- */
+var WHEEL = {
+  front: { W: 345, rimW: 305, discDx: -60 },
+  rear: { W: 375, rimW: 343, discDx: -55 },
+  barrelIn: 160,
+  barrelOut: 165,
+  flangeR: 177,
+  spokes: { n: 10, w: 18, r0: 40, r1: 160, inboardOfFlange: 35 },
+  disc: { r0: 85, r1: 139, t: 28 },
+  caliper: { x: 60, tang: 120, rad: 70, r0: 95, r1: 165, angDeg: 45 },
+  upright: { offset: 5, thick: 60, zWidth: 100, beyond: 30 }
+};
+/*! ---- §5.11 rear wing ----------------------------------------------------- */
+var RW = {
+  half: 365,
+  main: { LE: [-3525, 775], C: 230, alpha: 12, code: "6409" },
+  flap: { LE: [-3739.98, 834.82], C: 170, alpha: 36, code: "4408" },
+  beam: { LE: [-3570, 390], C: 140, alpha: 15, code: "4412" },
+  plate: { x: [365, 375], outline: [[-3490, 600], [-3490, 950], [-3890, 950], [-3890, 330], [-3600, 330]] },
+  pylon: { x: [-5, 5], z: [-3720, -3600] },
+  drsPivotFrac: 0.85
+};
+/*! ---- §5.12 plank --------------------------------------------------------- */
+var PLANK = { half: 150, y: [-10, 0], chamfer: 10, holeD: 50, holeZ: [-700, -1200, -1700, -2200, -2700, -3100], rho: 1.3 };
+/*! ---- §6.1 body table (m in kg, CoM in mm; right-side CoM for sided bodies) --- */
+var MASS = {
+  monocoque_survival_cell: { m: 55, com: [0, 360, -850] },
+  nose_and_front_wing_cascade: { m: 14.5, com: [0, 287, 727] },
+  engine_cover_and_sharkfin: { m: 8, com: [0, 700, -2150] },
+  sidepod_pods: { m: 2.5, com: [470, 350, -1800] },
+  radiator_internals: { m: 6, com: [440, 330, -1720] },
+  floor_and_blown_diffuser: { m: 14, com: [0, 55, -1975] },
+  exhaust_system: { m: 2.5, com: [337.5, 157.5, -2665.6] },
+  front_suspension_pushrod: { m: 2.6, com: [411, 376, -18] },
+  rear_suspension_pullrod: { m: 2.9, com: [370, 248, -3270] },
+  wheel_front: { m: 17, com: [698.2, 304.84, -10.37] },
+  wheel_rear: { m: 20, com: [673.8, 201.18, -3308.74] },
+  rear_wing_DRS: { m: 7, com: [0, 698, -3686] },
+  reference_plank: { m: 11.4, com: [0, -5, -1823.1] }
+};
+var MODELLED_TOTAL = { m: 216.9, com: [0, 292.6, -1486.3] };
+/*! ---- §7.2 explosion table: d_W in metres (xp sign convention), window [t0,t1] ---- */
+var EXPLODE = [
+  { body: "engine_cover_and_sharkfin", dW: [0, 1.2, 0], win: [0, 0.16], stage: "A1" },
+  { body: "rear_wing_DRS", dW: [0, 0.5, -1.5], win: [0.06, 0.22], stage: "A2" },
+  { body: "nose_and_front_wing_cascade", dW: [0, 0, 1.8], win: [0.1, 0.26], stage: "A3" },
+  { body: "sidepod_pods", dW: [1.4, 0.1, 0], win: [0.2, 0.36], stage: "A4", sided: true },
+  { body: "radiator_internals", dW: [0.7, 0, 0], win: [0.26, 0.42], stage: "A5", sided: true },
+  { body: "wheel_front", dW: [1, 0, 0], win: [0.44, 0.62], stage: "B1", sided: true },
+  { body: "wheel_rear", dW: [1, 0, 0], win: [0.44, 0.62], stage: "B1", sided: true },
+  { body: "front_suspension_pushrod", dW: [0.5, 0, 0], win: [0.44, 0.62], stage: "B1", sided: true },
+  { body: "rear_suspension_pullrod", dW: [0.5, 0, 0], win: [0.44, 0.62], stage: "B1", sided: true },
+  { body: "exhaust_system", dW: [-0.08, 0.3, -0.6], win: [0.64, 0.78], stage: "C1", sided: true },
+  { body: "floor_and_blown_diffuser", dW: [0, -0.8, 0], win: [0.8, 1], stage: "C2" },
+  { body: "reference_plank", dW: [0, -1.2, 0], win: [0.8, 1], stage: "C2" },
+  { body: "monocoque_survival_cell", dW: [0, 0, 0], win: null, stage: "anchor" }
+];
+/*! d_B column of §7.2 as printed (for the table-consistency assert) */
+var EXPLODE_dB_PRINTED = {
+  engine_cover_and_sharkfin: [0, 1.19941, -0.03769],
+  rear_wing_DRS: [0, 0.45264, -1.51497],
+  nose_and_front_wing_cascade: [0, 0.05654, 1.79911],
+  sidepod_pods: [1.4, 0.09995, -314e-5],
+  radiator_internals: [0.7, 0, 0],
+  wheel_front: [1, 0, 0],
+  wheel_rear: [1, 0, 0],
+  front_suspension_pushrod: [0.5, 0, 0],
+  rear_suspension_pullrod: [0.5, 0, 0],
+  exhaust_system: [-0.08, 0.281, -0.60912],
+  floor_and_blown_diffuser: [0, -0.79961, 0.02513],
+  reference_plank: [0, -1.19941, 0.03769],
+  monocoque_survival_cell: [0, 0, 0]
+};
+var GROUND_LIFT = 1.2;
+/*! ---- §5.x bounding boxes stated by the spec ([minx,miny,minz,maxx,maxy,maxz], mm; sided bodies = _xp) ---- */
+var BBOX_SPEC = {
+  monocoque_survival_cell: [-300, 60, -2e3, 300, 665, 350],
+  nose_and_front_wing_cascade: [-900, 75, 350, 900, 640, 1175],
+  engine_cover_and_sharkfin: [-270, 320, -3450, 270, 950, -1250],
+  sidepod_pods: [180, 75, -2850, 680, 580, -1150],
+  radiator_internals: [281.7, 178.1, -2030.3, 598.3, 481.9, -1409.7],
+  floor_and_blown_diffuser: [-700, 0, -3658.74, 700, 133, -340.37],
+  exhaust_system: [96, 69, -2968.3, 625, 235, -2254.3],
+  front_suspension_pushrod: [90, 222, -300, 655, 620, 230],
+  rear_suspension_pullrod: [95, 95, -3520, 630, 415, -2920],
+  wheel_front: [552.5, -25.16, -340.37, 897.5, 634.84, 319.63],
+  wheel_rear: [512.5, -128.82, -3638.74, 887.5, 531.18, -2978.74],
+  rear_wing_DRS: [-375, 330, -3890, 375, 950, -3490],
+  reference_plank: [-150, -10, -3308.74, 150, 0, -340.37]
+};
+
+// build_src/bodies.mjs
+/*! ============================================================================ */
+/*! bodies.mjs — builds every rigid body of the RB7 model from the §5 recipes. */
+/*! Geometry in mm, frame B, right (+X) side authored; _xn bodies share meshes + mirror flag. */
+/*! ============================================================================ */
+var { K: K2 } = spec_exports;
+var NOTES = [];
+var note = (id, where, text) => NOTES.push({ id, where, text });
+/*! --------------------------------------------------------------------------- */
+/*! helpers */
+/*! --------------------------------------------------------------------------- */
+var mirrorPart = (m, name) => m.clone(name).mirrorX();
+/*! offset an open polyline (x,z) by +-hw using mitred joins. returns {left,right} */
+function offsetPolyline(pts, hw) {
+  const n = pts.length;
+  const left = [], right = [];
+  const dirs = [];
+  for (let i = 0; i < n - 1; i++) {
+    const d = [pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]];
+    const l = Math.hypot(...d);
+    dirs.push([d[0] / l, d[1] / l]);
+  }
+  const nrm = (d) => [-d[1], d[0]];
+  for (let i = 0; i < n; i++) {
+    let nv;
+    if (i === 0) nv = nrm(dirs[0]);
+    else if (i === n - 1) nv = nrm(dirs[n - 2]);
+    else {
+      const n1 = nrm(dirs[i - 1]), n2 = nrm(dirs[i]);
+      const sx = n1[0] + n2[0], sz = n1[1] + n2[1];
+      const sl = Math.hypot(sx, sz);
+      const k = 1 / Math.max(0.2, sx / sl * n1[0] + sz / sl * n1[1]);
+      nv = [sx / sl * k, sz / sl * k];
+    }
+    left.push([pts[i][0] + nv[0] * hw, pts[i][1] + nv[1] * hw]);
+    right.push([pts[i][0] - nv[0] * hw, pts[i][1] - nv[1] * hw]);
+  }
+  return { left, right };
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.1 monocoque */
+/*! --------------------------------------------------------------------------- */
+function buildMonocoque() {
+  const phiSet = /* @__PURE__ */ new Set();
+  const addPhi = (p) => {
+    p = (p % TAU + TAU) % TAU;
+    phiSet.add(Math.round(p * 1e7) / 1e7);
+  };
+  for (let k = 0; k < 64; k++) addPhi(TAU * k / 64);
+  const addY = (zRef, y0, y1, step) => {
+    const s = loftSection(MONO_ST, zRef);
+    for (let y = y0; y <= y1; y += step) {
+      const eta = (y - s.yc) / s.b;
+      if (Math.abs(eta) >= 0.999) continue;
+      const ph = Math.asin(sgnPow(eta, s.n / 2));
+      addPhi(ph);
+      addPhi(Math.PI - ph);
+    }
+  };
+  addY(-75, 515, 655, 4);
+  addY(110, 375, 445, 4);
+  const phis = [...phiSet].sort((a, b) => a - b);
+  const extraZ = [];
+  for (let z = -125; z <= -30; z += 4) extraZ.push(z);
+  for (let z = 75; z <= 145; z += 4) extraZ.push(z);
+  const lf = loftSuperellipse(MONO_ST, { phis, extraZ, name: "monocoque_skin" });
+  const m = lf.mesh;
+  const C = COCKPIT, sl = FSUS.slot, ho = FSUS.hole;
+  const segDist = (p, a, b) => {
+    const ab = v3.sub(b, a), t = clamp(v3.dot(v3.sub(p, a), ab) / v3.dot(ab, ab), 0, 1);
+    return v3.len(v3.sub(p, v3.madd(a, ab, t)));
+  };
+  /*! exact cuts (F < 0 is removed).  cockpit: plan superellipse on the upper skin (y > 520). */
+  clipTriangles(m, (x, y, z) => {
+    if (y <= C.yMin) return 1;
+    return Math.pow(Math.abs((z - C.zc) / C.hz), C.p) + Math.pow(Math.abs(x / C.hx), C.p) - 1;
+  });
+  clipTriangles(m, (x, y, z) => Math.abs(x) > 100 && y > 380 && y < 700 && z > -150 && z < 0 ? segDist([Math.abs(x), y, z], sl.a, sl.b) - sl.r : 1);
+  clipTriangles(m, (x, y, z) => Math.abs(x) > 120 ? Math.max(Math.abs(y - ho.c[1]) - ho.half, Math.abs(z - ho.c[2]) - ho.half) : 1);
+  note("N-MONO-OPEN", "\xA75.1/\xA75.8", "Cockpit opening, pushrod slots and track-rod holes are cut exactly (triangles clipped along the stated implicit boundary); the skin is locally refined (4 mm rings/columns) only around the two rod openings. N_phi = 64 elsewhere.");
+  return [{ name: "skin", mesh: m, mat: "paint", open: true }];
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.2 nose and front wing cascade */
+/*! --------------------------------------------------------------------------- */
+var planN = (() => {
+  const [x0, z0] = FW_PLATE.p0, [x1, z1] = FW_PLATE.p1;
+  const dx = x1 - x0, dz = z1 - z0, L = Math.hypot(dx, dz);
+  return { L, d: [dx / L, dz / L], nOut: [-dz / L, dx / L], x0, z0 };
+})();
+/*! x of the endplate inner face at station z (plane through the plan line offset `thick` inboard) */
+var endplateInnerX = (z) => planN.x0 + (-FW_PLATE.thick - planN.nOut[1] * (z - planN.z0)) / planN.nOut[0];
+function airfoilUpperY(def, z) {
+  const loop = nacaLoop(def.code, def.inverted !== false, 40);
+  const placed = placeAirfoil(loop, def.LE[0], def.LE[1], def.C, def.alpha);
+  /*! find all crossings of z; take max y */
+  let best = -Infinity;
+  for (let i = 0; i < placed.length; i++) {
+    const a = placed[i], b = placed[(i + 1) % placed.length];
+    if ((a[0] - z) * (b[0] - z) <= 0 && a[0] !== b[0]) {
+      const t = (z - a[0]) / (b[0] - a[0]);
+      best = Math.max(best, a[1] + (b[1] - a[1]) * t);
+    }
+  }
+  return best;
+}
+function buildNoseAndWing() {
+  const parts = [];
+  /*! ---- nose cone: closed superellipse loft + tip cap ----------------------- */
+  const nPhi = 64;
+  const zs = ringZs(NOSE_ST.map((s) => s.z), 10);
+  const rows = zs.map((z) => ({ z, ...loftSection(NOSE_ST, z) }));
+  const T = NOSE_TIP, J = 12;
+  for (let j = 1; j < J; j++) {
+    const t = Math.PI / 2 * j / J;
+    rows.push({ z: T.z0 + T.len * Math.sin(t), yc: T.yc, a: T.a * Math.cos(t), b: T.b * Math.cos(t), n: NOSE_ST[3].n });
+  }
+  const nose = new Mesh("nose_cone");
+  const idx = addGrid(nose, rows.length, nPhi, (r, c) => {
+    const s = rows[r];
+    const q = superPoint(s.a, s.b, s.n, TAU * c / nPhi);
+    return [q[0], s.yc + q[1], s.z];
+  });
+  stitchGrid(nose, idx, rows.length, nPhi, { wrap: true });
+  const tip = nose.v(0, T.yc, T.z0 + T.len);
+  for (let c = 0; c < nPhi; c++) nose.tri(idx(rows.length - 1, c), idx(rows.length - 1, (c + 1) % nPhi), tip);
+  const cr = nose.v(0, (NOSE_ST[0].yb + NOSE_ST[0].yt) / 2, NOSE_ST[0].z);
+  for (let c = 0; c < nPhi; c++) nose.tri(cr, idx(0, (c + 1) % nPhi), idx(0, c));
+  nose.orientManifold();
+  parts.push({ name: "nose_cone", mesh: nose, mat: "paint" });
+  note("N-NOSE-CAP", "\xA75.2", "Tip cap uses the section half-axes (62k, 52.5k) with the exponent n=2.2 of the z=1135 station (spec gives only the half-axes).");
+  /*! ---- wing elements -------------------------------------------------------- */
+  const xEnd = (z) => Math.min(840, endplateInnerX(z));
+  const mkEl = (key2, def) => {
+    const loop = nacaLoop(def.code, def.inverted !== false, 40);
+    const poly = placeAirfoil(loop, def.LE[0], def.LE[1], def.C, def.alpha);
+    return { poly, x0: def.x[0], def, key: key2 };
+  };
+  const neutral = mkEl("neutral", FW.neutral);
+  parts.push({ name: "fw_neutral", mesh: extrudeZYAlongX(neutral.poly, -250, 250, "fw_neutral"), mat: "paint" });
+  for (const key2 of ["main", "flap1", "flap2", "c1", "c2"]) {
+    const e = mkEl(key2, FW[key2]);
+    const xp = extrudeZYAlongX(e.poly, e.def.x[0], xEnd, `fw_${key2}_xp`);
+    parts.push({ name: `fw_${key2}_xp`, mesh: xp, mat: "paint" });
+    parts.push({ name: `fw_${key2}_xn`, mesh: mirrorPart(xp, `fw_${key2}_xn`), mat: "paint" });
+  }
+  note("A-FW-TRIM", "\xA75.2 / R11", "Elements are extruded |x| 250..840 (cascades 620..840) and trimmed at the slanted endplate inner face, i.e. x_end(z)=min(840, x_inner(z)). Aft of z\u2248894 the inner face lies outboard of 840, so element tips stop short of the endplate (gap grows to ~50 mm at the endplate TE). Extending the elements to the plate would break R11 (|x|<=840). Not resolved by me.");
+  /*! ---- endplates ------------------------------------------------------------ */
+  const P = FW_PLATE;
+  const epOutline = [[0, P.y0], [0, P.y1], [planN.L, P.y1], [planN.L, P.yTE], [P.sChamfer, P.y0]];
+  const frame2 = { o: [planN.x0, 0, planN.z0], U: [planN.d[0], 0, planN.d[1]], V: [0, 1, 0], W: [-planN.nOut[0], 0, -planN.nOut[1]] };
+  const ep = extrudePolygon(epOutline, [], frame2, P.thick, "fw_endplate_xp");
+  parts.push({ name: "fw_endplate_xp", mesh: ep, mat: "paint", decal: "endplate" });
+  parts.push({ name: "fw_endplate_xn", mesh: mirrorPart(ep, "fw_endplate_xn"), mat: "paint", decal: "endplate" });
+  /*! ---- footplates: 60 wide inboard of the endplate (measured along the plate normal), y 75..80, z 700..985 ---- */
+  const F = FW_FOOT;
+  {
+    const inn = (z, off) => [endplateInnerX(z) - off / planN.nOut[0], z];
+    const poly = [inn(F.z1, 0), inn(F.z0, 0), inn(F.z0, F.width), inn(F.z1, F.width)];
+    const fp = extrudePolygon(poly.map(([x, z]) => [x, z]), [], { o: [0, F.y0, 0], U: [1, 0, 0], V: [0, 0, 1], W: [0, 1, 0] }, F.y1 - F.y0, "fw_footplate_xp");
+    parts.push({ name: "fw_footplate_xp", mesh: fp, mat: "paint" });
+    parts.push({ name: "fw_footplate_xn", mesh: mirrorPart(fp, "fw_footplate_xn"), mat: "paint" });
+  }
+  /*! ---- pylons: |x| 75..85, outline z 800..1000, neutral upper surface -> nose underside ---- */
+  {
+    const Y = FW_PYLON;
+    const lower = [], upper = [];
+    const noseBot = (z) => {
+      const s = loftSection(NOSE_ST, z);
+      const xm = (Y.x0 + Y.x1) / 2;
+      return s.yc - s.b * Math.pow(1 - Math.pow(xm / s.a, s.n), 1 / s.n);
+    };
+    const neutralUp = (z) => z > 985 ? 110 : airfoilUpperY({ ...FW.neutral, inverted: false }, z);
+    for (let z = Y.z0; z <= Y.z1 + 1e-6; z += 5) {
+      lower.push([z, neutralUp(z)]);
+      upper.push([z, noseBot(z)]);
+    }
+    const poly = [...lower, ...upper.slice().reverse()];
+    const py = plateZY(poly, Y.x0, Y.x1, "fw_pylon_xp");
+    parts.push({ name: "fw_pylon_xp", mesh: py, mat: "paint" });
+    parts.push({ name: "fw_pylon_xn", mesh: mirrorPart(py, "fw_pylon_xn"), mat: "paint" });
+    note("A-PYLON", "\xA75.2", 'Pylon outline is not dimensioned beyond "z 800..1000, neutral-section upper surface (y\u2248127) to nose underside (y\u2248308)". Built as the region between the actual neutral-section upper surface (flat y=110 ahead of its LE at z=985) and the actual nose underside at |x|=80 (\u2248338 there, not 308, because the underside rises away from the centreline). Questions raised in handoff.');
+  }
+  /*! ---- cascade struts: two 6 mm plates centred at |x| = 620 and 835 ---------- */
+  {
+    const main = FW.main;
+    const yMain = (z) => airfoilUpperY(main, z);
+    const c1 = FW.c1, c2 = FW.c2;
+    const te = (d) => {
+      const a = d.alpha * DEG;
+      return [d.LE[0] - d.C * Math.cos(a), d.LE[1] + d.C * Math.sin(a)];
+    };
+    const c1TE = te(c1), c2TE = te(c2), mTE = te(main);
+    const poly = [[830, yMain(830)], [c1.LE[0], c1.LE[1]], c1TE, [c2.LE[0], c2.LE[1]], c2TE, mTE];
+    for (let z = mTE[0] + 8; z < 830; z += 8) poly.push([z, yMain(z)]);
+    /*! order: A, C1LE, C1TE, C2LE, C2TE, mainTE, then points along main upper surface back toward z=830 */
+    const ordered = [poly[0], poly[1], poly[2], poly[3], poly[4], poly[5], ...poly.slice(6)];
+    for (const x of FW_STRUT.xs) {
+      const h = FW_STRUT.thick / 2;
+      const pl = plateZY(ordered, x - h, x + h, `fw_strut_${x}_xp`);
+      parts.push({ name: `fw_strut_${x}_xp`, mesh: pl, mat: "paint" });
+      parts.push({ name: `fw_strut_${x}_xn`, mesh: mirrorPart(pl, `fw_strut_${x}_xn`), mat: "paint" });
+    }
+    note("A-STRUT", "\xA75.2", 'Strut outline ("spanning the element chords, from the main-plane upper surface to C2") is not given as a polygon; built as the polygon through C1 LE, C1 TE, C2 LE, C2 TE, main-plane TE and back along the main-plane upper surface. Plates are centred on |x|=620 and 835 (thickness 6).');
+  }
+  return parts;
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.3 engine cover and shark fin */
+/*! --------------------------------------------------------------------------- */
+function canopySection(z) {
+  const g = (f) => stationInterp(COVER_ST, "z", z, f);
+  return { a: g("a"), ys: g("ys"), yb: g("yb"), yt: g("yt"), n: g("n") };
+}
+/*! canopy cross-section polyline for station params: skirt bottom (right) -> roof phi 0..pi -> skirt bottom (left) */
+function canopyRow(sec, nRoof = 32) {
+  const pts = [[sec.a, sec.yb]];
+  for (let k = 0; k <= nRoof; k++) {
+    const ph = Math.PI * k / nRoof;
+    pts.push([sec.a * sgnPow(Math.cos(ph), 2 / sec.n), sec.ys + (sec.yt - sec.ys) * Math.pow(Math.abs(Math.sin(ph)), 2 / sec.n)]);
+  }
+  pts.push([-sec.a, sec.yb]);
+  return pts;
+}
+function buildCover() {
+  note("N-COVER", "\xA75.3", "Engine cover is a single sheet (no wall thickness is given): roof superellipse + vertical skirts, open underneath, open tail at z=-3450; front face at z=-1250 closed except the 70x75 n=2.5 inlet hole. Shark fin is an 8 mm plate.");
+  const parts = [];
+  const zs = ringZs(COVER_ST.map((s) => s.z), 10);
+  const m = new Mesh("canopy");
+  const nRoof = 32;
+  const rows = zs.map((z) => canopyRow(canopySection(z), nRoof));
+  const nc = rows[0].length;
+  const idx = addGrid(m, zs.length, nc, (r, c) => [rows[r][c][0], rows[r][c][1], zs[r]]);
+  stitchGrid(m, idx, zs.length, nc, { wrap: false, flip: true });
+  parts.push({ name: "canopy", mesh: m, mat: "paint", open: true });
+  /*! airbox face at the front station with the inlet hole */
+  {
+    const sec = canopySection(AIRBOX.zFace);
+    const contour = canopyRow(sec, nRoof).map((p2) => [p2[0], p2[1]]);
+    /*! contour order: (a,yb) -> roof (a..-a) -> (-a,yb): a simple polygon (open underneath => closed by the straight bottom edge) */
+    const A = AIRBOX;
+    const hole = [];
+    const nH = 48;
+    for (let k = 0; k < nH; k++) {
+      const q = superPoint(A.hx, A.hy, A.p, TAU * k / nH);
+      hole.push([q[0], A.yc + q[1]]);
+    }
+    const { pts, tris } = triangulate2D(contour, [hole]);
+    const f = new Mesh("airbox_face");
+    const ids = pts.map((p2) => f.v(p2[0], p2[1], A.zFace));
+    for (const t of tris) f.tri(ids[t[0]], ids[t[2]], ids[t[1]]);
+    /*! face the front (+z): ensure the first triangle's normal has +z */
+    const p = f.p, t0 = f.i;
+    const ux = p[t0[1] * 3] - p[t0[0] * 3], uy = p[t0[1] * 3 + 1] - p[t0[0] * 3 + 1], wx = p[t0[2] * 3] - p[t0[0] * 3], wy = p[t0[2] * 3 + 1] - p[t0[0] * 3 + 1];
+    if (ux * wy - uy * wx < 0) f.flip();
+    parts.push({ name: "airbox_face", mesh: f, mat: "paint", open: true });
+  }
+  /*! shark fin */
+  {
+    const Fn = FIN;
+    const yTop = (z) => {
+      const sec = canopySection(z);
+      return sec.yt;
+    };
+    const stationZ = COVER_ST.map((s) => s.z).filter((z) => z < Fn.zFront && z > Fn.zRear);
+    const lower = [[Fn.zFront, yTop(Fn.zFront)], ...stationZ.map((z) => [z, yTop(z)]), [Fn.zRear, yTop(Fn.zRear)]];
+    const upper = [[Fn.zRear, Fn.yRear], [Fn.zKnee, Fn.yTop], [Fn.zFront, Fn.yTop]];
+    const poly = [...lower, ...upper];
+    const fin = plateZY(poly, -Fn.half, Fn.half, "shark_fin");
+    parts.push({ name: "shark_fin", mesh: fin, mat: "paint", decal: "fin" });
+    note("A-FIN", "\xA75.3", "Fin lower edge = canopy centreline y_top(z) with vertices at each cover station; leading edge at z=-1350 is a 0.8 mm sliver (y_top(-1350)=949.2 to 950) exactly as the spec outline implies.");
+  }
+  return parts;
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.4 sidepod C-shell (x_p authored) */
+/*! --------------------------------------------------------------------------- */
+function podSection(z) {
+  const g = (f) => stationInterp(POD_ST, "z", z, f);
+  return { xi: g("xi"), Xo: g("Xo"), Yb: g("Yb"), Ym: g("Ym"), Yt: g("Yt") };
+}
+/*! point on outer pod surface at (z, phi in [-pi/2, pi/2]) */
+function podPoint(z, phi) {
+  const s = podSection(z);
+  const up = phi >= 0;
+  const n = up ? POD.nu : POD.nl;
+  const B = up ? s.Yt - s.Ym : s.Ym - s.Yb;
+  return [s.xi + (s.Xo - s.xi) * Math.pow(Math.max(0, Math.cos(phi)), 2 / n), s.Ym + B * sgnPow(Math.sin(phi), 2 / n), z];
+}
+function buildPod() {
+  const zs = ringZs(POD_ST.map((s) => s.z), 10);
+  const nPhi = 32;
+  const phiAt = (c) => -Math.PI / 2 + Math.PI * c / nPhi;
+  const nc = nPhi + 1;
+  const outer = (r, c) => podPoint(zs[r], phiAt(c));
+  /*! inward unit normal by finite differences of the parametric surface */
+  const normalAt = (r, c) => {
+    const dz = 1, dp = 1e-3;
+    const z = zs[r], ph = clamp(phiAt(c), -Math.PI / 2 + dp, Math.PI / 2 - dp);
+    const pz1 = podPoint(Math.min(z + dz, zs[0] > zs[zs.length - 1] ? zs[0] : zs[zs.length - 1]), ph);
+    const pz0 = podPoint(z, ph);
+    const zOther = z - dz;
+    const dPz = v3.sub(podPoint(clamp(z + dz, zs[zs.length - 1], zs[0]), ph), podPoint(clamp(z - dz, zs[zs.length - 1], zs[0]), ph));
+    const dPp = v3.sub(podPoint(z, ph + dp), podPoint(z, ph - dp));
+    let n = v3.norm(v3.cross(dPp, dPz));
+    /*! outward is +x at phi=0 (outer middle): make n point outward at (any) point by comparing with the direction from the section centre */
+    const s = podSection(z);
+    const centre = [s.xi, s.Ym, z];
+    const P = podPoint(z, ph);
+    const outDir = v3.sub(P, centre);
+    if (v3.dot(n, outDir) < 0) n = v3.mul(n, -1);
+    return n;
+  };
+  const m = new Mesh("pod_shell");
+  const o = addGrid(m, zs.length, nc, (r, c) => outer(r, c));
+  const w = POD.wall;
+  const inn = addGrid(m, zs.length, nc, (r, c) => {
+    const P = outer(r, c), n = normalAt(r, c);
+    return v3.madd(P, n, -w);
+  });
+  stitchGrid(m, o, zs.length, nc, { flip: true });
+  stitchGrid(m, inn, zs.length, nc, { flip: false });
+  /*! edge strips: inlet row, tail row, top edge (phi=+pi/2), bottom edge (phi=-pi/2) */
+  const R = zs.length;
+  for (let c = 0; c < nc - 1; c++) {
+    m.quad(o(0, c), o(0, c + 1), inn(0, c + 1), inn(0, c));
+    m.quad(o(R - 1, c + 1), o(R - 1, c), inn(R - 1, c), inn(R - 1, c + 1));
+  }
+  for (let r = 0; r < R - 1; r++) {
+    m.quad(o(r, 0), o(r + 1, 0), inn(r + 1, 0), inn(r, 0));
+    m.quad(o(r + 1, nc - 1), o(r, nc - 1), inn(r, nc - 1), inn(r + 1, nc - 1));
+  }
+  m.orientManifold();
+  note("N-POD-WALL", "\xA75.4", 'Pod wall: outer surface = stated C-shell; inner surface offset 3 mm along the surface normal; the four open edges (inlet, tail, top, bottom) are closed with strips. "Lip radius 8" on a 3 mm wall is not modelled as a separate fillet (no consistent geometry given) \u2014 asked in handoff.');
+  return [{ name: "shell", mesh: m, mat: "paint", decal: "pod" }];
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.5 radiator internals */
+/*! --------------------------------------------------------------------------- */
+function radiatorFrame() {
+  const R = RAD, psi = R.psiDeg * DEG, lam = R.lamDeg * DEG;
+  const w0 = [Math.cos(psi), 0, -Math.sin(psi)];
+  const v = v3.add(v3.mul([0, 1, 0], Math.cos(lam)), v3.mul(w0, Math.sin(lam)));
+  const w = v3.sub(v3.mul(w0, Math.cos(lam)), v3.mul([0, 1, 0], Math.sin(lam)));
+  const n = v3.cross(w, v);
+  return { w, v, n, C: R.C };
+}
+function buildRadiator() {
+  note("N-RAD", "\xA75.5", "Radiator = core box 50x300x560 + two end-tank boxes 50x300x30, oriented by the stated yaw 20\xB0 / lean 12\xB0 basis (det +1). No fins/pipework modelled.");
+  const { w, v, n, C } = radiatorFrame();
+  const R = RAD, hx = R.thick / 2, hy = R.height / 2;
+  const core = orientedBox(C, w, v, n, [hx, hy, R.coreLen / 2], "rad_core");
+  const off = R.coreLen / 2 + R.tankLen / 2;
+  const t1 = orientedBox(v3.madd(C, n, off), w, v, n, [hx, hy, R.tankLen / 2], "rad_tank_front");
+  const t2 = orientedBox(v3.madd(C, n, -off), w, v, n, [hx, hy, R.tankLen / 2], "rad_tank_rear");
+  return [{ name: "core", mesh: core, mat: "radiator" }, { name: "tank_front", mesh: t1, mat: "alloy" }, { name: "tank_rear", mesh: t2, mat: "alloy" }];
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.6 floor and blown diffuser */
+/*! --------------------------------------------------------------------------- */
+var rho = (s) => 2 * s * s - s * s * s;
+function diffuserRoofY(x, z) {
+  const s = clamp((K2.Z_RA - z) / FLOOR.diffLen, 0, 1);
+  const ax = Math.abs(x);
+  const y0 = ax <= 150 ? 0 : 50;
+  return y0 + (K2.HD - y0) * rho(s);
+}
+function heightFieldSlab(xs, zs, yFn, thick, name) {
+  const m = new Mesh(name);
+  const nx = xs.length, nz = zs.length;
+  const lo = addGrid(m, nz, nx, (r, c) => [xs[c], yFn(xs[c], zs[r]), zs[r]]);
+  const hi = addGrid(m, nz, nx, (r, c) => [xs[c], yFn(xs[c], zs[r]) + thick, zs[r]]);
+  stitchGrid(m, lo, nz, nx, {});
+  stitchGrid(m, hi, nz, nx, { flip: true });
+  for (let c = 0; c < nx - 1; c++) {
+    m.quad(lo(0, c), lo(0, c + 1), hi(0, c + 1), hi(0, c));
+    m.quad(lo(nz - 1, c + 1), lo(nz - 1, c), hi(nz - 1, c), hi(nz - 1, c + 1));
+  }
+  for (let r = 0; r < nz - 1; r++) {
+    m.quad(lo(r + 1, 0), lo(r, 0), hi(r, 0), hi(r + 1, 0));
+    m.quad(lo(r, nx - 1), lo(r + 1, nx - 1), hi(r + 1, nx - 1), hi(r, nx - 1));
+  }
+  return m.orientManifold();
+}
+function exhaustPlanProjection(nPts = 40) {
+  const P = EXH.P;
+  const out = [];
+  for (let k = 0; k <= nPts; k++) {
+    const u = FLOOR.foil.bandU0 + (1 - FLOOR.foil.bandU0) * k / nPts;
+    const b = bezier(P[0], P[1], P[2], P[3], u);
+    out.push([b[0], b[2]]);
+  }
+  return out;
+}
+function buildFloor() {
+  const F = FLOOR, parts = [];
+  const zStart = K2.Z_FA - 330;
+  const outline = F.outline(zStart, K2.Z_RA);
+  /*! right-half plan contour in (x, z) */
+  const contour = [[150, zStart], ...outline.map(([z, x]) => [x, z]), [150, K2.Z_RA]];
+  /*! trough + slot hole polygon */
+  const T = F.trough, hw = T.w / 2;
+  const path = T.path.map((p) => [p[0], p[1]]);
+  /*! clip the trough path at z = slot.z[1] (=-3180) along the last segment */
+  const zc = F.slot.z[1];
+  const [p1, p2] = [path[1], path[2]];
+  const tc = (zc - p1[1]) / (p2[1] - p1[1]);
+  const pEnd = [p1[0] + (p2[0] - p1[0]) * tc, zc];
+  const trPath = [path[0], path[1], pEnd];
+  const { left, right } = offsetPolyline(trPath, hw);
+  const trough = [...left, ...right.slice().reverse()];
+  const slot = [[F.slot.x[0], F.slot.z[1]], [F.slot.x[0], F.slot.z[0]], [F.slot.x[1], F.slot.z[0]], [F.slot.x[1], F.slot.z[1]]];
+  /*! hole = right boundary (E0..end) -> slot corners -> left boundary (end..E0) */
+  const hole = [...right, slot[0], slot[1], slot[2], slot[3], ...left.slice().reverse()];
+  const frameY = (y) => ({ o: [0, y, 0], U: [1, 0, 0], V: [0, 0, 1], W: [0, 1, 0] });
+  const panel = extrudePolygon(contour, [hole], frameY(F.stepY0), F.stepY1 - F.stepY0, "step_panel_xp");
+  parts.push({ name: "step_panel_xp", mesh: panel, mat: "carbon" });
+  parts.push({ name: "step_panel_xn", mesh: mirrorPart(panel, "step_panel_xn"), mat: "carbon" });
+  const troughFloor = extrudePolygon(trough, [], frameY(F.stepY0), F.stepY1 - F.trough.depth - F.stepY0, "trough_floor_xp");
+  parts.push({ name: "trough_floor_xp", mesh: troughFloor, mat: "carbon" });
+  parts.push({ name: "trough_floor_xn", mesh: mirrorPart(troughFloor, "trough_floor_xn"), mat: "carbon" });
+  /*! reference-strip walls |x| = 150 (centred), y 0..50 */
+  const wall = axisBox(150 - F.wallThick / 2, 150 + F.wallThick / 2, F.wallY[0], F.wallY[1], K2.Z_RA, zStart, "strip_wall_xp");
+  parts.push({ name: "strip_wall_xp", mesh: wall, mat: "carbon" });
+  parts.push({ name: "strip_wall_xn", mesh: mirrorPart(wall, "strip_wall_xn"), mat: "carbon" });
+  /*! 10 mm top plate behind z=-2000, y 50..60, |x| <= 150 */
+  parts.push({ name: "strip_top_plate", mesh: axisBox(-150, 150, F.stepY0, F.stepY1, K2.Z_RA, F.topPlateZ, "strip_top_plate"), mat: "carbon" });
+  /*! diffuser: roof slabs (central, outer xp, outer xn) + fences + sidewalls */
+  const z0 = K2.Z_RA, z1 = K2.Z_RA - F.diffLen;
+  const nz = 36;
+  const zsD = Array.from({ length: nz + 1 }, (_, k) => z0 + (z1 - z0) * k / nz);
+  const xsC = Array.from({ length: 13 }, (_, k) => -150 + 300 * k / 12);
+  const xsO = Array.from({ length: 15 }, (_, k) => 150 + (F.diffHalf - 150) * k / 14);
+  parts.push({ name: "diffuser_roof_c", mesh: heightFieldSlab(xsC, zsD, diffuserRoofY, F.roofThick, "diffuser_roof_c"), mat: "carbon" });
+  const roofO = heightFieldSlab(xsO, zsD, (x, z) => diffuserRoofY(Math.max(x, 150.0001), z), F.roofThick, "diffuser_roof_xp");
+  parts.push({ name: "diffuser_roof_xp", mesh: roofO, mat: "carbon" });
+  parts.push({ name: "diffuser_roof_xn", mesh: mirrorPart(roofO, "diffuser_roof_xn"), mat: "carbon" });
+  const fenceAt = (xc, hw2, name) => {
+    const poly = [];
+    const top = [];
+    for (let k = 0; k <= nz; k++) {
+      const z = zsD[k];
+      const xr = Math.max(Math.abs(xc), 150.0001);
+      top.push([z, diffuserRoofY(xr, z)]);
+    }
+    poly.push([z0, 0], ...top.map(([z, y]) => [z, y]), [z1, 0]);
+    /*! polygon: bottom edge z0 -> z1 at y=0, then top edge back */
+    const bottom = [[z0, 0], [z1, 0]];
+    const ring = [...bottom, ...top.slice().reverse()];
+    return plateZY(ring, xc - hw2, xc + hw2, name);
+  };
+  const ft = F.fenceThick / 2;
+  for (const xc of F.fenceX) {
+    const f = fenceAt(xc, ft, `fence_${xc}_xp`);
+    parts.push({ name: `fence_${xc}_xp`, mesh: f, mat: "carbon" });
+    parts.push({ name: `fence_${xc}_xn`, mesh: mirrorPart(f, `fence_${xc}_xn`), mat: "carbon" });
+  }
+  const sw = fenceAt(F.sideX - ft, ft, "sidewall_xp");
+  parts.push({ name: "sidewall_xp", mesh: sw, mat: "carbon" });
+  parts.push({ name: "sidewall_xn", mesh: mirrorPart(sw, "sidewall_xn"), mat: "carbon" });
+  note("N-FLOOR-THICK", "\xA75.6", "Reference-strip wall thickness is not given; 6 mm (the fence thickness) used, centred on |x|=150. Fences are centred on |x|=150/320; the outer sidewall sits inside the |x|<=490 limit (x 484..490).");
+  note("A-DIFF-TOP", "\xA75.6 / R9", 'Roof panel is 8 mm thick, "offset upward (top = y_r + 8)" and the spec bbox lists y max 133, while R9 / audit correction #1 cap the diffuser surface at 125. Built exactly as written: lower (airflow) surface y_r<=125 (assert 4 as written passes), panel top reaches 133.');
+  /*! gold foil F1 band + F2 fan (raster patches 0.5 above the panel top) */
+  const foilY = F.stepY1 + F.foil.lift;
+  const proj = exhaustPlanProjection(60);
+  const distToPoly = (x, z) => {
+    let d = Infinity;
+    for (let i = 0; i < proj.length - 1; i++) {
+      const a = proj[i], b = proj[i + 1];
+      const abx = b[0] - a[0], abz = b[1] - a[1];
+      const t = clamp(((x - a[0]) * abx + (z - a[1]) * abz) / (abx * abx + abz * abz), 0, 1);
+      d = Math.min(d, Math.hypot(x - a[0] - abx * t, z - a[1] - abz * t));
+    }
+    return d;
+  };
+  const inPanel = (x, z) => x >= 150 && pointInPoly([x, z], contour) && !pointInPoly([x, z], hole);
+  const f1 = rasterPatch((x, z) => inPanel(x, z) && distToPoly(x, z) <= F.foil.band, 380, 700, -3e3, -2650, 2, foilY, "foil_F1_xp");
+  const ap = F.foil.fanApex, dir = F.foil.fanDir, cosH = Math.cos(F.foil.fanHalfDeg * DEG);
+  const f22 = rasterPatch((x, z) => {
+    if (!inPanel(x, z)) return false;
+    const dx = x - ap[0], dz = z - ap[1], r = Math.hypot(dx, dz);
+    if (r > F.foil.fanR) return false;
+    if (r < 1e-9) return true;
+    return (dx * dir[0] + dz * dir[1]) / r >= cosH;
+  }, 560, 740, -3080, -2800, 2, foilY + 0, "foil_F2_xp");
+  parts.push({ name: "foil_F1_xp", mesh: f1, mat: "gold", open: true });
+  parts.push({ name: "foil_F1_xn", mesh: mirrorPart(f1, "foil_F1_xn"), mat: "gold", open: true });
+  parts.push({ name: "foil_F2_xp", mesh: f22, mat: "gold", open: true });
+  parts.push({ name: "foil_F2_xn", mesh: mirrorPart(f22, "foil_F2_xn"), mat: "gold", open: true });
+  note("A-FOIL-F3", "\xA75.6", 'F3 ("pod underside" gold foil) is referred to as belonging to \xA75.4 but \xA75.4 gives no definition or extent. NOT built (not invented). F1, F2 (\xA75.6) and F4 (\xA75.7) are built.');
+  note("N-FOIL-RASTER", "\xA75.6", "Foil patches F1/F2 are built as a 2 mm raster of the stated plan regions clipped to the outline (stair-stepped edge, 2 mm).");
+  return parts;
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.7 exhaust (x_p authored) */
+/*! --------------------------------------------------------------------------- */
+function exhaustArcLength(n = 400) {
+  const P = EXH.P;
+  let L = 0, prev2 = bezier(P[0], P[1], P[2], P[3], 0);
+  const Lu = [0];
+  for (let k = 1; k <= n; k++) {
+    const b = bezier(P[0], P[1], P[2], P[3], k / n);
+    L += v3.len(v3.sub(b, prev2));
+    Lu.push(L);
+    prev2 = b;
+  }
+  return { L, Lu, n };
+}
+function buildExhaust() {
+  note("N-EXH", "\xA75.7", "Exhaust modelled as a single-sheet D-section tube (1 mm wall not modelled), optional collector INCLUDED (the spec bbox and the 32.6 mm expectation include it), F4 sleeve = last 250 mm of arc length grown 2 mm radially. Pipe exit left open.");
+  const E = EXH, [P0, P1, P2, P3] = E.P, parts = [];
+  const pipe = bezierSweepD(P0, P1, P2, P3, { a: E.a, bt: E.bt, bb: E.bb, nU: 64, nA: 48, name: "exhaust_pipe" });
+  parts.push({ name: "pipe", mesh: pipe, mat: "inconel", open: true });
+  /*! optional collector (included: the spec bbox and the 32.6 mm expectation include it) */
+  {
+    const t0 = v3.norm(bezierD(P0, P1, P2, P3, 0));
+    const fr = bezierFrame(P0, P1, P2, P3, 0);
+    const c0 = v3.madd(P0, t0, -E.collectorBack);
+    const nU = 12, nA = 48;
+    const m = new Mesh("exhaust_collector");
+    const idx = addGrid(m, nU + 1, nA, (r, c) => {
+      const u = r / nU, al = TAU * c / nA;
+      const circ = v3.add(c0, v3.add(v3.mul(fr.m, E.collectorR * Math.cos(al)), v3.mul(fr.n, E.collectorR * Math.sin(al))));
+      const [dm, dn] = dSection(al, E.a, E.bt, E.bb);
+      const dpt = v3.add(P0, v3.add(v3.mul(fr.m, dm), v3.mul(fr.n, dn)));
+      return v3.lerp(circ, dpt, u);
+    });
+    stitchGrid(m, idx, nU + 1, nA, { wrap: true });
+    parts.push({ name: "collector", mesh: m, mat: "inconel", open: true });
+  }
+  /*! F4 foil sleeve: last 250 mm of arc length, +2 mm offset */
+  {
+    const { L, Lu, n } = exhaustArcLength(800);
+    const target = L - E.sleeveLen;
+    let k = 0;
+    while (k < n && Lu[k] < target) k++;
+    const u0 = k / n;
+    const sl = bezierSweepD(P0, P1, P2, P3, { a: E.a, bt: E.bt, bb: E.bb, nU: 24, nA: 48, u0, u1: 1, offset: E.sleeveOff, name: "exhaust_sleeve_F4" });
+    parts.push({ name: "sleeve_F4", mesh: sl, mat: "gold", open: true });
+  }
+  return parts;
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.8 / §5.9 suspension (x_p authored) */
+/*! --------------------------------------------------------------------------- */
+function buildFrontSuspension() {
+  note("N-SUSP", "\xA75.8/\xA75.9", 'Members are built from hardpoint to hardpoint with flat end caps (60x20, 40x16, 36x14 sections). The "clevis brackets <= 35 mm", free-standing rear pickups, rockers and dampers have no dimensions and are NOT modelled.');
+  const H = FSUS, parts = [];
+  const add = (name, A, B, sec) => parts.push({ name, mesh: sweptMember(A, B, sec.C, sec.tau, name), mat: "susp", member: { A, B, ...sec } });
+  add("uw_front_leg", H.UBJ, H.UF, H.wb);
+  add("uw_rear_leg", H.UBJ, H.UR, H.wb);
+  add("lw_front_leg", H.LBJ, H.LF, H.wb);
+  add("lw_rear_leg", H.LBJ, H.LR, H.wb);
+  add("pushrod", H.PRo, H.PRi, H.push);
+  add("trackrod", H.TRo, H.TRi, H.track);
+  return parts;
+}
+function buildRearSuspension() {
+  const H = RSUS, parts = [];
+  const add = (name, A, B, sec) => parts.push({ name, mesh: sweptMember(A, B, sec.C, sec.tau, name), mat: "susp", member: { A, B, ...sec } });
+  add("uw_front_leg", H.UBJ, H.UF, H.wb);
+  add("uw_rear_leg", H.UBJ, H.UR, H.wb);
+  add("lw_front_leg", H.LBJ, H.LF, H.wb);
+  add("lw_rear_leg", H.LBJ, H.LR, H.wb);
+  add("pullrod", H.PLo, H.PLi, H.pull);
+  add("toelink", H.TLo, H.TLi, H.toe);
+  return parts;
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.10 wheel assembly (x_p authored). `kind` = 'front' | 'rear' */
+/*! --------------------------------------------------------------------------- */
+function parallelepiped(o, e1, e2, e3, name) {
+  const m = new Mesh(name);
+  const ids = [];
+  for (const a of [0, 1]) for (const b of [0, 1]) for (const c of [0, 1]) ids.push(m.v(...v3.add(o, v3.add(v3.mul(e1, a), v3.add(v3.mul(e2, b), v3.mul(e3, c))))));
+  const I = (a, b, c) => ids[a * 4 + b * 2 + c];
+  m.quad(I(0, 0, 0), I(0, 0, 1), I(0, 1, 1), I(0, 1, 0));
+  m.quad(I(1, 0, 0), I(1, 1, 0), I(1, 1, 1), I(1, 0, 1));
+  m.quad(I(0, 0, 0), I(1, 0, 0), I(1, 0, 1), I(0, 0, 1));
+  m.quad(I(0, 1, 0), I(0, 1, 1), I(1, 1, 1), I(1, 1, 0));
+  m.quad(I(0, 0, 0), I(0, 1, 0), I(1, 1, 0), I(1, 0, 0));
+  m.quad(I(0, 0, 1), I(1, 0, 1), I(1, 1, 1), I(0, 1, 1));
+  return m.orientManifold();
+}
+function buildWheel(kind) {
+  const W = WHEEL, parts = [];
+  const isF = kind === "front";
+  const wc = isF ? [K2.Tf / 2, K2.Y_FA, K2.Z_FA] : [K2.Tr / 2, K2.Y_RA, K2.Z_RA];
+  const spec = isF ? W.front : W.rear;
+  /*! tyre */
+  parts.push({ name: "tyre", mesh: tyreTorus(wc, spec.W, K2.Rw, K2.Rrim, { nPhi: 64, nAlpha: 48, name: "tyre", phase: Math.PI - K2.theta }), mat: "tyre", decal: "tyre" });
+  /*! rim: barrel (160..165) with flanges to 177 at wc.x +- rimW/2 (flange axial thickness not given -> 5 mm assumed) */
+  const hw = spec.rimW / 2, tf = 5;
+  const prof = [[-hw, W.barrelIn], [hw, W.barrelIn], [hw, W.flangeR], [hw - tf, W.flangeR], [hw - tf, W.barrelOut], [-hw + tf, W.barrelOut], [-hw + tf, W.flangeR], [-hw, W.flangeR]];
+  parts.push({ name: "rim", mesh: lathe(prof, wc, 96, "rim"), mat: "alloy" });
+  /*! spokes: outboard dish, 10 spokes 18 wide, r 40..160, plane 35 inboard of the outer flange (thickness assumed 10) */
+  {
+    const sp = W.spokes, xPlane = wc[0] + hw - sp.inboardOfFlange, th = 10;
+    const m = new Mesh("spokes");
+    for (let k = 0; k < sp.n; k++) {
+      const a = TAU * k / sp.n;
+      const rv = [0, Math.cos(a), Math.sin(a)], tv = [0, -Math.sin(a), Math.cos(a)];
+      const c = v3.add([xPlane, wc[1], wc[2]], v3.mul(rv, (sp.r0 + sp.r1) / 2));
+      m.append(orientedBox(c, [1, 0, 0], rv, tv, [th / 2, (sp.r1 - sp.r0) / 2, sp.w / 2]));
+    }
+    parts.push({ name: "spokes", mesh: m, mat: "alloy" });
+  }
+  /*! brake disc */
+  {
+    const D = W.disc, xd = wc[0] + spec.discDx;
+    const prof2 = [[-D.t / 2, D.r0], [D.t / 2, D.r0], [D.t / 2, D.r1], [-D.t / 2, D.r1]];
+    parts.push({ name: "disc", mesh: lathe(prof2, [xd, wc[1], wc[2]], 64, "disc"), mat: "disc" });
+    /*! caliper block at the disc's rear-upper 45 deg position */
+    const Cl = W.caliper, ang = Cl.angDeg * DEG;
+    const rv = [0, Math.cos(ang), -Math.sin(ang)], tv = [0, Math.sin(ang), Math.cos(ang)];
+    const rc = (Cl.r0 + Cl.r1) / 2;
+    const c = v3.add([xd, wc[1], wc[2]], v3.mul(rv, rc));
+    parts.push({ name: "caliper", mesh: orientedBox(c, [1, 0, 0], rv, tv, [Cl.x / 2, Cl.rad / 2, Cl.tang / 2], "caliper"), mat: "caliper" });
+  }
+  /*! upright slab + arm */
+  {
+    const H = isF ? FSUS : RSUS;
+    const U = W.upright;
+    const LBJ = H.LBJ, UBJ = H.UBJ;
+    const kv = v3.sub(UBJ, LBJ);
+    const Lk = v3.len(kv);
+    const k = v3.norm(kv);
+    let nu = v3.norm(v3.cross(k, [0, 0, 1]));
+    if (nu[0] < 0) nu = v3.mul(nu, -1);
+    const origin = v3.add(v3.add(v3.madd(LBJ, k, -U.beyond), v3.mul(nu, U.offset)), [0, 0, -U.zWidth / 2]);
+    const slab = parallelepiped(origin, v3.mul(k, Lk + 2 * U.beyond), [0, 0, U.zWidth], v3.mul(nu, U.thick), "upright");
+    parts.push({ name: "upright", mesh: slab, mat: "susp" });
+    /*! steering / toe arm: bar from the slab edge to the track-rod / toe-link outer node, material at x >= x_joint + 5 */
+    const node = isF ? H.TRo : H.TLo;
+    const s = (node[1] - LBJ[1]) / k[1];
+    const onLine = v3.madd(LBJ, k, s);
+    const zEdge = isF ? onLine[2] + U.zWidth / 2 : onLine[2] - U.zWidth / 2;
+    const zFar = isF ? node[2] + 10 : node[2] - 10;
+    const x0 = node[0] + U.offset;
+    const arm = axisBox(x0, x0 + 20, node[1] - 10, node[1] + 10, Math.min(zEdge, zFar), Math.max(zEdge, zFar), "steer_arm");
+    parts.push({ name: isF ? "steering_arm" : "toe_arm", mesh: arm, mat: "susp" });
+  }
+  note("N-WHEEL", "\xA75.10", "Not dimensioned in the spec and therefore assumed (all intra-body, visual only): rim flange axial thickness 5 mm (= barrel wall), spoke thickness 10 mm, steering/toe arm 20x20 mm, no hub body. Upright slab built as the parallelepiped (kingpin axis x Z-width x normal) exactly as described; caliper block built literally with r in [95,165] although the barrel inner radius is 160.");
+  return parts;
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.11 rear wing and DRS */
+/*! --------------------------------------------------------------------------- */
+function rwElementPoly(def) {
+  return placeAirfoil(nacaLoop(def.code, true, 40), def.LE[0], def.LE[1], def.C, def.alpha);
+}
+function buildRearWing() {
+  const R = RW, parts = [];
+  const main = extrudeZYAlongX(rwElementPoly(R.main), -R.half, R.half, "rw_main");
+  const flap = extrudeZYAlongX(rwElementPoly(R.flap), -R.half, R.half, "rw_flap");
+  const beam = extrudeZYAlongX(rwElementPoly(R.beam), -R.half, R.half, "rw_beam");
+  parts.push({ name: "main_plane", mesh: main, mat: "paint" });
+  parts.push({ name: "drs_flap", mesh: flap, mat: "paint", drs: true });
+  parts.push({ name: "beam_wing", mesh: beam, mat: "paint" });
+  const ep = plateZY(R.plate.outline, R.plate.x[0], R.plate.x[1], "rw_endplate_xp");
+  parts.push({ name: "endplate_xp", mesh: ep, mat: "paint", decal: "rwplate" });
+  parts.push({ name: "endplate_xn", mesh: mirrorPart(ep, "endplate_xn"), mat: "paint", decal: "rwplate" });
+  /*! central pylon: from beam-wing top surface to main-plane underside (z -3720..-3600) */
+  {
+    const P = R.pylon;
+    const zs = [];
+    for (let z = P.z[1]; z >= P.z[0] - 1e-6; z -= 5) zs.push(z);
+    const beamTop = (z) => {
+      const poly2 = rwElementPoly(R.beam);
+      let best = -Infinity;
+      for (let i = 0; i < poly2.length; i++) {
+        const a = poly2[i], b = poly2[(i + 1) % poly2.length];
+        if ((a[0] - z) * (b[0] - z) <= 0 && a[0] !== b[0]) {
+          const t = (z - a[0]) / (b[0] - a[0]);
+          best = Math.max(best, a[1] + (b[1] - a[1]) * t);
+        }
+      }
+      return best === -Infinity ? null : best;
+    };
+    const mainBot = (z) => {
+      const poly2 = rwElementPoly(R.main);
+      let best = Infinity;
+      for (let i = 0; i < poly2.length; i++) {
+        const a = poly2[i], b = poly2[(i + 1) % poly2.length];
+        if ((a[0] - z) * (b[0] - z) <= 0 && a[0] !== b[0]) {
+          const t = (z - a[0]) / (b[0] - a[0]);
+          best = Math.min(best, a[1] + (b[1] - a[1]) * t);
+        }
+      }
+      return best;
+    };
+    const teBeam = R.beam.LE[1] + R.beam.C * Math.sin(R.beam.alpha * DEG);
+    const lower = zs.map((z) => [z, beamTop(z) ?? teBeam]);
+    const upper = zs.map((z) => [z, mainBot(z)]);
+    const poly = [...lower, ...upper.slice().reverse()];
+    parts.push({ name: "pylon", mesh: plateZY(poly, P.x[0], P.x[1], "rw_pylon"), mat: "paint" });
+    note("A-RW-PYLON", "\xA75.11", "Pylon z range (-3720..-3600) is longer than the beam wing (TE at z=-3705.2); behind that the lower edge is held flat at the beam-wing TE height. Plate outline otherwise follows beam-wing top and main-plane underside.");
+  }
+  return parts;
+}
+/*! DRS pivot (z,y) = flap LE + 0.85 * 170 * c-hat, c-hat = (-cos a, +sin a) */
+function drsPivot() {
+  const f = RW.flap, a = f.alpha * DEG;
+  return [f.LE[0] + RW.drsPivotFrac * f.C * -Math.cos(a), f.LE[1] + RW.drsPivotFrac * f.C * Math.sin(a)];
+}
+/*! --------------------------------------------------------------------------- */
+/*! §5.12 plank */
+/*! --------------------------------------------------------------------------- */
+function buildPlank() {
+  const P = PLANK, zF = K2.Z_FA - 330, zR = K2.Z_RA;
+  /*! body: extrusion along X of the side outline with the 10x10 leading underside chamfer; holes cut with earcut caps */
+  const m = new Mesh("plank");
+  const [y0, y1] = P.y;
+  const nH = 32, r = P.holeD / 2;
+  /*! top (y1) and bottom (y0) faces with holes: polygon in (x,z) */
+  const zB0 = zF - P.chamfer;
+  const topC = [[-P.half, zF], [P.half, zF], [P.half, zR], [-P.half, zR]];
+  const botC = [[-P.half, zB0], [P.half, zB0], [P.half, zR], [-P.half, zR]];
+  const holes = P.holeZ.map((z) => Array.from({ length: nH }, (_, k) => [r * Math.cos(TAU * k / nH), z + r * Math.sin(TAU * k / nH)]));
+  const mk = (contour, y, faceUp) => {
+    const { pts, tris } = triangulate2D(contour, holes);
+    const ids = pts.map((p) => m.v(p[0], y, p[1]));
+    for (const t of tris) {
+      if (faceUp) m.tri(ids[t[0]], ids[t[1]], ids[t[2]]);
+      else m.tri(ids[t[0]], ids[t[2]], ids[t[1]]);
+    }
+    return { ids, n: contour.length };
+  };
+  const top = mk(topC, y1, true), bot = mk(botC, y0, true);
+  /*! sides: use shared vertices where rings coincide -> build with fresh vertices for walls */
+  const wall = (a, b, ya, yb, za, zb) => {
+    const A0 = m.v(a[0], ya, a[1]), A1 = m.v(b[0], ya, b[1]), B1 = m.v(b[0], yb, b[1]), B0 = m.v(a[0], yb, a[1]);
+    m.quad(A0, A1, B1, B0);
+  };
+  /*! side walls (+x, -x), rear (z=zR), front chamfer (slope) */
+  const quadV = (p0, p1, p2, p3) => {
+    const a = m.v(...p0), b = m.v(...p1), c = m.v(...p2), d = m.v(...p3);
+    m.quad(a, b, c, d);
+  };
+  quadV([P.half, y0, zB0], [P.half, y0, zR], [P.half, y1, zR], [P.half, y1, zF]);
+  quadV([-P.half, y0, zB0], [-P.half, y1, zF], [-P.half, y1, zR], [-P.half, y0, zR]);
+  quadV([-P.half, y0, zR], [-P.half, y1, zR], [P.half, y1, zR], [P.half, y0, zR]);
+  quadV([-P.half, y0, zB0], [P.half, y0, zB0], [P.half, y1, zF], [-P.half, y1, zF]);
+  /*! hole walls */
+  for (const z of P.holeZ) {
+    for (let k = 0; k < nH; k++) {
+      const a0 = TAU * k / nH, a1 = TAU * (k + 1) / nH;
+      quadV([r * Math.cos(a0), y0, z + r * Math.sin(a0)], [r * Math.cos(a0), y1, z + r * Math.sin(a0)], [r * Math.cos(a1), y1, z + r * Math.sin(a1)], [r * Math.cos(a1), y0, z + r * Math.sin(a1)]);
+    }
+  }
+  /*! vertices of walls are not welded to the caps (separate vertex sets) -> orient each coherently by volume per whole mesh is not reliable; */
+  /*! therefore rebuild welded: weld by position then orientManifold. */
+  const welded = weld(m, 1e-6);
+  welded.orientManifold();
+  note("N-PLANK", "\xA75.12", "Plank built as a 300x10 box with the 10x10 leading underside chamfer (removes the full 10 mm front face; wedge-shaped nose) and six \xD850 through-holes at x=0, z=-700..-3100. The spec volume/mass (11.4 kg) ignores the chamfer.");
+  return [{ name: "plank", mesh: welded, mat: "carbonDark" }];
+}
+/*! merge coincident vertices */
+function weld(m, eps = 1e-6) {
+  const map = /* @__PURE__ */ new Map();
+  const out = new Mesh(m.name);
+  const remap = new Int32Array(m.nv);
+  const key2 = (x, y, z) => `${Math.round(x / eps)},${Math.round(y / eps)},${Math.round(z / eps)}`;
+  for (let i = 0; i < m.nv; i++) {
+    const k = key2(m.p[3 * i], m.p[3 * i + 1], m.p[3 * i + 2]);
+    let id = map.get(k);
+    if (id === void 0) {
+      id = out.v(m.p[3 * i], m.p[3 * i + 1], m.p[3 * i + 2]);
+      map.set(k, id);
+    }
+    remap[i] = id;
+  }
+  for (let t = 0; t < m.i.length; t += 3) {
+    const a = remap[m.i[t]], b = remap[m.i[t + 1]], c = remap[m.i[t + 2]];
+    if (a !== b && b !== c && a !== c) out.tri(a, b, c);
+  }
+  return out;
+}
+function buildGearboxProxy() {
+  const G = GEARBOX;
+  return [{ name: "gearbox", mesh: axisBox(G.x[0], G.x[1], G.y[0], G.y[1], G.z[0], G.z[1], "gearbox_proxy"), mat: "carbonDark" }];
+}
+/*! ============================================================================ */
+/*! Model assembly */
+/*! ============================================================================ */
+function buildModel({ withGearbox = true } = {}) {
+  const parts = {
+    monocoque: buildMonocoque(),
+    nose: buildNoseAndWing(),
+    cover: buildCover(),
+    pod: buildPod(),
+    rad: buildRadiator(),
+    floor: buildFloor(),
+    exhaust: buildExhaust(),
+    fsus: buildFrontSuspension(),
+    rsus: buildRearSuspension(),
+    wheelF: buildWheel("front"),
+    wheelR: buildWheel("rear"),
+    rw: buildRearWing(),
+    plank: buildPlank()
+  };
+  const dBof = (dW) => [dW[0], K2.c * dW[1] + K2.s * dW[2], -K2.s * dW[1] + K2.c * dW[2]];
+  const bodies = [];
+  const push = (id, base, side, ps, massKey, expKey, extra = {}) => {
+    const ex = EXPLODE.find((e) => e.body === expKey);
+    const massRec = MASS[massKey];
+    const dWp = ex.dW;
+    const dW = side < 0 ? [-dWp[0], dWp[1], dWp[2]] : dWp;
+    const comP = massRec.com;
+    const com = side < 0 ? [-comP[0], comP[1], comP[2]] : comP;
+    bodies.push({ id, base, side, parts: ps, mass: massRec.m, com, dW, dB: dBof(dW), win: ex.win, stage: ex.stage, mirror: side < 0, ...extra });
+  };
+  push("monocoque_survival_cell", "monocoque_survival_cell", 0, parts.monocoque, "monocoque_survival_cell", "monocoque_survival_cell");
+  push("nose_and_front_wing_cascade", "nose_and_front_wing_cascade", 0, parts.nose, "nose_and_front_wing_cascade", "nose_and_front_wing_cascade");
+  push("engine_cover_and_sharkfin", "engine_cover_and_sharkfin", 0, parts.cover, "engine_cover_and_sharkfin", "engine_cover_and_sharkfin");
+  push("sidepod_pods_xp", "sidepod_pods", 1, parts.pod, "sidepod_pods", "sidepod_pods");
+  push("sidepod_pods_xn", "sidepod_pods", -1, parts.pod, "sidepod_pods", "sidepod_pods");
+  push("radiator_internals_xp", "radiator_internals", 1, parts.rad, "radiator_internals", "radiator_internals");
+  push("radiator_internals_xn", "radiator_internals", -1, parts.rad, "radiator_internals", "radiator_internals");
+  push("floor_and_blown_diffuser", "floor_and_blown_diffuser", 0, parts.floor, "floor_and_blown_diffuser", "floor_and_blown_diffuser");
+  push("exhaust_system_xp", "exhaust_system", 1, parts.exhaust, "exhaust_system", "exhaust_system");
+  push("exhaust_system_xn", "exhaust_system", -1, parts.exhaust, "exhaust_system", "exhaust_system");
+  push("front_suspension_pushrod_xp", "front_suspension_pushrod", 1, parts.fsus, "front_suspension_pushrod", "front_suspension_pushrod");
+  push("front_suspension_pushrod_xn", "front_suspension_pushrod", -1, parts.fsus, "front_suspension_pushrod", "front_suspension_pushrod");
+  push("rear_suspension_pullrod_xp", "rear_suspension_pullrod", 1, parts.rsus, "rear_suspension_pullrod", "rear_suspension_pullrod");
+  push("rear_suspension_pullrod_xn", "rear_suspension_pullrod", -1, parts.rsus, "rear_suspension_pullrod", "rear_suspension_pullrod");
+  push("wheel_fxp", "wheel_front", 1, parts.wheelF, "wheel_front", "wheel_front");
+  push("wheel_fxn", "wheel_front", -1, parts.wheelF, "wheel_front", "wheel_front");
+  push("wheel_rxp", "wheel_rear", 1, parts.wheelR, "wheel_rear", "wheel_rear");
+  push("wheel_rxn", "wheel_rear", -1, parts.wheelR, "wheel_rear", "wheel_rear");
+  push("rear_wing_DRS", "rear_wing_DRS", 0, parts.rw, "rear_wing_DRS", "rear_wing_DRS");
+  push("reference_plank", "reference_plank", 0, parts.plank, "reference_plank", "reference_plank");
+  const extras = withGearbox ? [{ id: "gearbox_proxy", parts: buildGearboxProxy(), optional: true }] : [];
+  return { K: K2, bodies, extras, notes: NOTES, parts, dBof };
+}
+
+// build_src/verify.mjs
+import * as THREE from "three";
+import { MeshBVH } from "three-mesh-bvh";
+/*! ============================================================================ */
+/*! verify.mjs — §8 asserts, regulatory envelope checks, named clearances and the */
+/*! pairwise BVH sweep.  DOM-free; used by the page and by the Node test harness. */
+/*! ============================================================================ */
+var { K: K3 } = spec_exports;
+/*! three-mesh-bvh logs a warning for every coplanar triangle pair (designed coincident faces); silence just that one. */
+var _warn = console.warn;
+console.warn = (...a) => {
+  if (typeof a[0] === "string" && a[0].startsWith("ExtendedTriangle.intersectsTriangle")) return;
+  _warn.apply(console, a);
+};
+/*! --------------------------------------------------------------------------- */
+/*! Geometry -> collision world (mm, frame B at t = 0, mirrored bodies baked) */
+/*! --------------------------------------------------------------------------- */
+function makeGeometry(meshes, mirror, flipPartFilter) {
+  let nv = 0, ni = 0;
+  for (const m of meshes) {
+    nv += m.p.length;
+    ni += m.i.length;
+  }
+  const pos = new Float32Array(nv), idx = new Uint32Array(ni);
+  let po = 0, io = 0, vb = 0;
+  for (const m of meshes) {
+    for (let k = 0; k < m.p.length; k += 3) {
+      pos[po++] = mirror ? -m.p[k] : m.p[k];
+      pos[po++] = m.p[k + 1];
+      pos[po++] = m.p[k + 2];
+    }
+    for (let k = 0; k < m.i.length; k += 3) {
+      if (mirror) {
+        idx[io++] = m.i[k] + vb;
+        idx[io++] = m.i[k + 2] + vb;
+        idx[io++] = m.i[k + 1] + vb;
+      } else {
+        idx[io++] = m.i[k] + vb;
+        idx[io++] = m.i[k + 1] + vb;
+        idx[io++] = m.i[k + 2] + vb;
+      }
+    }
+    vb += m.p.length / 3;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  g.computeBoundingBox();
+  g.boundsTree = new MeshBVH(g, { maxLeafTris: 8 });
+  return g;
+}
+function buildWorld(model2, { includeExtras = false } = {}) {
+  const world2 = { bodies: [], byId: {} };
+  const add = (b, extra = false) => {
+    const rec = {
+      id: b.id,
+      base: b.base ?? b.id,
+      side: b.side ?? 0,
+      mirror: !!b.mirror,
+      win: b.win ?? null,
+      dB: b.dB ?? [0, 0, 0],
+      stage: b.stage,
+      extra,
+      parts: []
+    };
+    rec.geom = makeGeometry(b.parts.map((p) => p.mesh), rec.mirror);
+    for (const p of b.parts) {
+      const g = makeGeometry([p.mesh], rec.mirror);
+      rec.parts.push({ name: p.name, geom: g, bbox: g.boundingBox });
+    }
+    world2.bodies.push(rec);
+    world2.byId[rec.id] = rec;
+  };
+  for (const b of model2.bodies) add(b);
+  if (includeExtras) for (const e of model2.extras) add({ ...e, id: e.id, parts: e.parts, dB: [0, 0, 0], win: null }, true);
+  return world2;
+}
+/*! body offset in mm at timeline t (translation only, §6.4) */
+function offsetAt(body, t) {
+  if (!body.win) return [0, 0, 0];
+  const s = Math.min(1, Math.max(0, (t - body.win[0]) / (body.win[1] - body.win[0])));
+  const e = smoothstep(s);
+  return [body.dB[0] * e * 1e3, body.dB[1] * e * 1e3, body.dB[2] * e * 1e3];
+}
+var boxGap = (A, oA, B, oB) => {
+  let g2 = 0;
+  for (let a = 0; a < 3; a++) {
+    const lo = Math.max(A.min.getComponent(a) + oA[a], B.min.getComponent(a) + oB[a]);
+    const hi = Math.min(A.max.getComponent(a) + oA[a], B.max.getComponent(a) + oB[a]);
+    if (lo > hi) g2 += (lo - hi) * (lo - hi);
+  }
+  return Math.sqrt(g2);
+};
+var _mat = new THREE.Matrix4();
+var triCount = (g) => g.index.count / 3;
+/*!
+ * closest distance between two (BVH-carrying) geometries given their translational offsets (mm);
+ * Infinity if > thr; 0 when triangles touch/intersect (three-mesh-bvh intersectsGeometry).
+ * The geometry with fewer triangles drives the traversal (large speed-up for the monocoque).
+ */
+function distance(gA, oA, gB, oB, thr = Infinity) {
+  const swap = triCount(gA) > triCount(gB);
+  const g1 = swap ? gB : gA, g2 = swap ? gA : gB;
+  const dx = swap ? oA[0] - oB[0] : oB[0] - oA[0], dy = swap ? oA[1] - oB[1] : oB[1] - oA[1], dz = swap ? oA[2] - oB[2] : oB[2] - oA[2];
+  _mat.makeTranslation(dx, dy, dz);
+  if (g1.boundsTree.intersectsGeometry(g2, _mat)) return 0;
+  const r = g1.boundsTree.closestPointToGeometry(g2, _mat, {}, {}, 0, thr);
+  return r ? r.distance : Infinity;
+}
+/*! min distance over a list of parts pairs / times */
+function minDistanceParts(world2, A, partsA, B, partsB, times, thr = 500) {
+  const gA = partsA ? mergeParts(A, partsA) : A.geom, gB = partsB ? mergeParts(B, partsB) : B.geom;
+  const key2 = (oA, oB) => `${Math.round((oB[0] - oA[0]) * 1e4)},${Math.round((oB[1] - oA[1]) * 1e4)},${Math.round((oB[2] - oA[2]) * 1e4)}`;
+  const seen = /* @__PURE__ */ new Set();
+  let best = { d: Infinity, t: null }, thrK = thr;
+  const eval1 = (t) => {
+    const oA = offsetAt(A, t), oB = offsetAt(B, t), k = key2(oA, oB);
+    if (seen.has(k)) return;
+    seen.add(k);
+    if (boxGap(gA.boundingBox, oA, gB.boundingBox, oB) >= thrK) return;
+    const d = distance(gA, oA, gB, oB, thrK);
+    if (d < best.d) {
+      best = { d, t };
+      thrK = Math.min(thrK, d + 1e-9);
+    }
+  };
+  /*! coarse-first: every 10th sample establishes a tight bound, then the rest are pruned against it */
+  for (let i = 0; i < times.length; i += 10) eval1(times[i]);
+  for (let i = 0; i < times.length; i++) if (i % 10) eval1(times[i]);
+  /*! local refinement around the best time (1/32 of the sampling step either side) */
+  if (best.t !== null && times.length > 1) {
+    const st = Math.abs(times[1] - times[0]) || 1e-3;
+    const t0 = best.t;
+    for (let j = -16; j <= 16; j++) eval1(Math.min(1, Math.max(0, t0 + st * j / 16)));
+  }
+  return best;
+}
+var _mergeCache = /* @__PURE__ */ new Map();
+function mergeParts(body, names) {
+  const key2 = body.id + "|" + names.join(",");
+  if (_mergeCache.has(key2)) return _mergeCache.get(key2);
+  const sel = body.parts.filter((p) => names.some((n) => n.endsWith("*") ? p.name.startsWith(n.slice(0, -1)) : p.name === n));
+  if (!sel.length) throw new Error(`no parts ${names} in ${body.id}`);
+  let g;
+  if (sel.length === 1) g = sel[0].geom;
+  else {
+    let nv = 0, ni = 0;
+    for (const p of sel) {
+      nv += p.geom.attributes.position.array.length;
+      ni += p.geom.index.array.length;
+    }
+    const pos = new Float32Array(nv), idx = new Uint32Array(ni);
+    let po = 0, io = 0, vb = 0;
+    for (const p of sel) {
+      const a = p.geom.attributes.position.array, ix = p.geom.index.array;
+      pos.set(a, po);
+      po += a.length;
+      for (let k = 0; k < ix.length; k++) idx[io++] = ix[k] + vb;
+      vb += a.length / 3;
+    }
+    g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    g.computeBoundingBox();
+    g.boundsTree = new MeshBVH(g, { maxLeafTris: 8 });
+  }
+  _mergeCache.set(key2, g);
+  return g;
+}
+/*! --------------------------------------------------------------------------- */
+/*! Designed contacts (documented interpretation — NOT in the spec; see handoff) */
+/*! --------------------------------------------------------------------------- */
+var DESIGNED_CONTACT = [
+  { a: "monocoque_survival_cell", b: "nose_and_front_wing_cascade", parts: [["skin", "nose_cone"]], tol: 1, why: '\xA75.2: nose rear station = monocoque front station ("seamless joint"); bodies share the z=350 plane' },
+  { a: "engine_cover_and_sharkfin", b: "sidepod_pods", sided: true, parts: [["canopy", "shell"]], tol: 1, why: "\xA75.3 / \xA77.3: cover skirts sit on the pod top inner edges (skirt = pod top inner edge)" },
+  { a: "monocoque_survival_cell", b: "floor_and_blown_diffuser", parts: [["skin", "strip_top_plate"]], tol: 1, why: "\xA75.6: monocoque underside closes the reference-strip box (y=60)" },
+  { a: "floor_and_blown_diffuser", b: "reference_plank", parts: [["strip_wall_*", "plank"], ["diffuser_roof_*", "plank"], ["fence_150_*", "plank"], ["strip_top_plate", "plank"]], tol: 1, why: "\xA75.6 / \xA75.12: reference strip underside y=0 sits on the plank top" },
+  { a: "front_suspension_pushrod", b: "wheel_front", sided: true, parts: [["uw_front_leg", "upright"], ["uw_rear_leg", "upright"], ["lw_front_leg", "upright"], ["lw_rear_leg", "upright"], ["trackrod", "steering_arm"]], tol: 30, why: "\xA75.10: members end at the ball joints carried by the upright (end caps overlap the slab by up to ~half a chord)" },
+  { a: "rear_suspension_pullrod", b: "wheel_rear", sided: true, parts: [["uw_front_leg", "upright"], ["uw_rear_leg", "upright"], ["lw_front_leg", "upright"], ["lw_rear_leg", "upright"], ["toelink", "toe_arm"]], tol: 30, why: "\xA75.10: members end at the ball joints carried by the upright" }
+];
+var partMatch = (pat, name) => pat.endsWith("*") ? name.startsWith(pat.slice(0, -1)) : pat === name;
+function designedFor(A, B) {
+  for (const d of DESIGNED_CONTACT) {
+    const fwd = A.base === d.a && B.base === d.b, rev = A.base === d.b && B.base === d.a;
+    if (!fwd && !rev) continue;
+    if (d.sided && A.side && B.side && A.side !== B.side) continue;
+    return { rule: d, swap: rev };
+  }
+  return null;
+}
+/*! --------------------------------------------------------------------------- */
+/*! Pairwise sweep (§8.9) */
+/*! --------------------------------------------------------------------------- */
+var PairSweep = class {
+  constructor(world2, { step = 5e-3, thr = 30, report = 100 } = {}) {
+    this.world = world2;
+    this.step = step;
+    this.thr = thr;
+    this.report = report;
+    this.pairs = [];
+    const b = world2.bodies;
+    for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++) this.pairs.push([b[i], b[j]]);
+    this.cursor = 0;
+    this.results = [];
+    this.queries = 0;
+    this.t0 = null;
+    this.elapsed = 0;
+  }
+  get done() {
+    return this.cursor >= this.pairs.length;
+  }
+  get progress() {
+    return this.cursor / this.pairs.length;
+  }
+  /*! process pairs until `budgetMs` has elapsed; returns true when finished */
+  run(budgetMs = 12) {
+    const start2 = performance.now();
+    while (this.cursor < this.pairs.length && performance.now() - start2 < budgetMs) {
+      const [A, B] = this.pairs[this.cursor++];
+      this.results.push(this.evalPair(A, B));
+    }
+    this.elapsed += performance.now() - start2;
+    return this.done;
+  }
+  evalPair(A, B) {
+    const T = this.step, K_ = Math.round(1 / T), thr = this.thr;
+    const dsg = designedFor(A, B);
+    const res = {
+      a: A.id,
+      b: B.id,
+      min: Infinity,
+      tMin: null,
+      d0: null,
+      contacts: [],
+      designed: dsg ? dsg.rule.why : null,
+      violations: [],
+      unexplained: false,
+      gapMin: Infinity,
+      queries: 0,
+      sub: 0
+    };
+    let lastD = null, lastDelta = null;
+    let delta0 = null;
+    const Ds = new Array(K_ + 1), LBs = new Array(K_ + 1), Deltas = new Array(K_ + 1);
+    for (let k = 0; k <= K_; k++) {
+      const t = k * T, oA = offsetAt(A, t), oB = offsetAt(B, t);
+      const delta = [oB[0] - oA[0], oB[1] - oA[1], oB[2] - oA[2]];
+      Deltas[k] = delta;
+      if (k === 0) delta0 = delta;
+      const gap = boxGap(A.geom.boundingBox, oA, B.geom.boundingBox, oB);
+      let d, lb;
+      if (gap > thr) {
+        d = null;
+        lb = gap;
+      } else if (lastDelta && Math.hypot(delta[0] - lastDelta[0], delta[1] - lastDelta[1], delta[2] - lastDelta[2]) < 1e-7 && lastD !== void 0) {
+        d = lastD;
+        lb = d === null ? thr : d;
+      } else {
+        const q = distance(A.geom, oA, B.geom, oB, thr);
+        res.queries++;
+        d = Number.isFinite(q) ? q : null;
+        lb = d === null ? Math.max(thr, gap) : d;
+        lastD = d;
+        lastDelta = delta;
+      }
+      Ds[k] = d;
+      LBs[k] = lb;
+      if (d !== null && d < res.min) {
+        res.min = d;
+        res.tMin = t;
+      }
+      if (k === 0) res.d0 = d;
+      if (gap < res.gapMin) res.gapMin = gap;
+      if (d !== null && d <= 1e-3) res.contacts.push({ k, t, disp: Math.hypot(delta[0] - delta0[0], delta[1] - delta0[1], delta[2] - delta0[2]) });
+    }
+    /*! continuous-motion certification between samples.  Lipschitz bound on an interval: min >= (d_k + d_k+1 - |dDelta|)/2. */
+    /*! Every interval is subdivided until the bound is positive (> 0.25 mm): no collision can hide between samples. */
+    let kBest = -1;
+    for (let k = 0; k <= K_; k++) if (Ds[k] !== null && Math.abs(Ds[k] - res.min) < 1e-9) {
+      kBest = k;
+      break;
+    }
+    for (let k = 0; k < K_; k++) {
+      const s = Math.hypot(Deltas[k + 1][0] - Deltas[k][0], Deltas[k + 1][1] - Deltas[k][1], Deltas[k + 1][2] - Deltas[k][2]);
+      if (s < 1e-6) continue;
+      if (Ds[k] !== null && Ds[k] <= 1e-3) continue;
+      if (Ds[k + 1] !== null && Ds[k + 1] <= 1e-3) continue;
+      const lb = (LBs[k] + LBs[k + 1] - s) / 2;
+      /*! minimum is refined to 0.5 mm only next to the best sample (cheap), collision-certified everywhere */
+      const nearBest = res.min <= thr && kBest >= 0 && (k === kBest || k === kBest - 1);
+      const target = nearBest ? Math.max(0.25, res.min - 0.5) : 0.25;
+      if (lb >= target) continue;
+      this.refine(A, B, k * T, (k + 1) * T, Ds[k], Ds[k + 1], LBs[k], LBs[k + 1], Deltas[k], Deltas[k + 1], res, 0, nearBest);
+    }
+    this.queries += res.queries;
+    /*! classify contacts against the designed-contact rules */
+    if (res.contacts.length) this.classify(A, B, res, dsg);
+    return res;
+  }
+  refine(A, B, t0, t1, d0, d1, lb0, lb1, D0, D1, res, depth, tight = false) {
+    const s = Math.hypot(D1[0] - D0[0], D1[1] - D0[1], D1[2] - D0[2]);
+    const lb = (lb0 + lb1 - s) / 2;
+    const target = tight ? Math.max(0.25, Math.min(res.min, this.thr) - 0.5) : 0.25;
+    if (lb >= target || s < 0.2 || depth >= 8) {
+      if (lb <= 0 && s >= 0.2) res.sub++;
+      return;
+    }
+    const tm = (t0 + t1) / 2, oA = offsetAt(A, tm), oB = offsetAt(B, tm);
+    const Dm = [oB[0] - oA[0], oB[1] - oA[1], oB[2] - oA[2]];
+    const gap = boxGap(A.geom.boundingBox, oA, B.geom.boundingBox, oB);
+    let dm = null, lbm;
+    if (gap > this.thr) lbm = gap;
+    else {
+      const q = distance(A.geom, oA, B.geom, oB, this.thr);
+      res.queries++;
+      dm = Number.isFinite(q) ? q : null;
+      lbm = dm === null ? Math.max(this.thr, gap) : dm;
+    }
+    if (dm !== null && dm < res.min) {
+      res.min = dm;
+      res.tMin = tm;
+    }
+    this.refine(A, B, t0, tm, d0, dm, lb0, lbm, D0, Dm, res, depth + 1, tight);
+    this.refine(A, B, tm, t1, dm, d1, lbm, lb1, Dm, D1, res, depth + 1, tight);
+  }
+  /*! part-level classification of body-pair contacts at the first contact sample and at the last */
+  classify(A, B, res, dsg) {
+    const n = res.contacts.length, nPick = Math.min(n, 10);
+    const picks = [];
+    for (let q = 0; q < nPick; q++) picks.push(res.contacts[Math.round(q * (n - 1) / Math.max(1, nPick - 1))]);
+    const seen = /* @__PURE__ */ new Set();
+    for (const c of picks) {
+      if (seen.has(c.k)) continue;
+      seen.add(c.k);
+      const oA = offsetAt(A, c.t), oB = offsetAt(B, c.t);
+      for (const pa of A.parts) for (const pb of B.parts) {
+        if (boxGap(pa.bbox, oA, pb.bbox, oB) > 1e-3) continue;
+        const d = distance(pa.geom, oA, pb.geom, oB, 0.01);
+        if (!(d <= 1e-3)) continue;
+        let allowed = false;
+        if (dsg) {
+          for (const [x, y] of dsg.rule.parts) {
+            const m = dsg.swap ? partMatch(x, pb.name) && partMatch(y, pa.name) : partMatch(x, pa.name) && partMatch(y, pb.name);
+            if (m) {
+              allowed = c.disp <= dsg.rule.tol;
+              break;
+            }
+          }
+        }
+        if (!allowed) res.violations.push({ t: c.t, disp: c.disp, a: pa.name, b: pb.name });
+      }
+    }
+    /*! contact that persists beyond the allowed relative displacement is an explicit violation */
+    res.unexplained = res.violations.length > 0;
+  }
+};
+/*! --------------------------------------------------------------------------- */
+/*! §8.9 expected-minimum table: part-level measured values */
+/*! --------------------------------------------------------------------------- */
+var range = (a, b, st) => {
+  const o = [];
+  for (let t = a; t <= b + 1e-9; t += st) o.push(Math.round(t * 1e6) / 1e6);
+  return o;
+};
+function namedClearances(world2, K_ = K3) {
+  const W = world2.byId;
+  const out = [];
+  const e015 = (() => {
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 60; i++) {
+      const m = (lo + hi) / 2;
+      if (smoothstep(m) < 0.15) lo = m;
+      else hi = m;
+    }
+    return 0.64 + 0.14 * (lo + hi) / 2;
+  })();
+  const q = (id, label, expected, aId, aParts, bId, bParts, times, note2 = "", kind = "min") => {
+    const r = minDistanceParts(world2, W[aId], aParts, W[bId], bParts, times, 400);
+    out.push({ id, label, expected, measured: r.d, at: r.t, note: note2, kind });
+  };
+  q("rim-uw", "Rim barrel \u2194 front upper-wishbone rear leg (radial)", 2.8, "wheel_fxp", ["rim"], "front_suspension_pushrod_xp", ["uw_rear_leg"], [0.44], "rim part includes flanges; 0 = triangles intersect");
+  q("exh-panel", "Exhaust lip \u2194 panel top (pipe + collector vs step panel, no foil/sleeve)", 8.9, "exhaust_system_xp", ["pipe", "collector"], "floor_and_blown_diffuser", ["step_panel_xp"], [0]);
+  q("exh-panel-built", "Exhaust lip \u2194 panel top as built (F4 sleeve + F2 foil included)", 8.9, "exhaust_system_xp", null, "floor_and_blown_diffuser", null, [0], "spec value ignores the 2 mm F4 sleeve and 0.5 mm F2 foil", "info");
+  q("floor-tyre", "Floor \u2194 rear tyre", 15.5, "floor_and_blown_diffuser", null, "wheel_rxp", ["tyre"], [0]);
+  q("exh-wb", "Exhaust \u2194 exploded rear lower-wishbone bracket (C1 window)", 14, "exhaust_system_xp", null, "rear_suspension_pullrod_xp", ["lw_front_leg"], range(0.64, 0.78, 1e-3), "min over C1 [0.64,0.78]");
+  q("exh-wb-e15", "Exhaust \u2194 rear lower-wishbone leg at e\u22480.15 (t=" + e015.toFixed(3) + ")", 14, "exhaust_system_xp", null, "rear_suspension_pullrod_xp", ["lw_front_leg"], [e015], "", "info");
+  q("exh-wb-all", "Exhaust \u2194 rear lower-wishbone leg, whole timeline (B1 + C1)", 14, "exhaust_system_xp", null, "rear_suspension_pullrod_xp", ["lw_front_leg", "lw_rear_leg"], range(0, 1, 2e-3), "smallest over t in [0,1]", "info");
+  q("exh-pod", "Exhaust \u2194 pod lower edge (static, and A4)", 19.8, "exhaust_system_xp", null, "sidepod_pods_xp", null, [0, ...range(0.2, 0.36, 5e-3)]);
+  q("rad-pod", "Radiator \u2194 pod undercut (static)", 21.2, "radiator_internals_xp", null, "sidepod_pods_xp", null, [0], "spec measures vertically to the OUTER surface; the 3 mm wall puts the inner skin 3 mm closer");
+  q("rad-mono", "Radiator \u2194 monocoque (static)", 26.2, "radiator_internals_xp", null, "monocoque_survival_cell", null, [0]);
+  q("exh-tyre", "Exhaust lip \u2194 rear tyre (static)", 26.3, "exhaust_system_xp", ["pipe", "collector"], "wheel_rxp", ["tyre"], [0]);
+  q("cover-pickup", "Cover skirt \u2194 rear upper-wishbone pickup (static)", 28.9, "engine_cover_and_sharkfin", ["canopy"], "rear_suspension_pullrod_xp", ["uw_front_leg", "uw_rear_leg"], [0], "spec value is to the hardpoint centre, not the 60 mm-chord member end");
+  q("exh-exh", "_xp exhaust \u2194 _xn exhaust (t = 1)", 32.6, "exhaust_system_xp", null, "exhaust_system_xn", null, [1]);
+  q("lw-diff", "Rear lower wishbone \u2194 diffuser roof (static)", 54.9, "rear_suspension_pullrod_xp", ["lw_front_leg", "lw_rear_leg"], "floor_and_blown_diffuser", ["diffuser_roof_xp", "diffuser_roof_c"], [0]);
+  q("flap2-tyre", "FW flap 2 \u2194 front tyre (static)", 87.6, "nose_and_front_wing_cascade", ["fw_flap2_xp"], "wheel_fxp", ["tyre"], [0]);
+  return out;
+}
+/*! --------------------------------------------------------------------------- */
+/*! section slicing helpers (area, connectivity) */
+/*! --------------------------------------------------------------------------- */
+function sliceZ(mesh, z0) {
+  const p = mesh.p, t = mesh.i, segs = [];
+  for (let k = 0; k < t.length; k += 3) {
+    const v = [t[k] * 3, t[k + 1] * 3, t[k + 2] * 3];
+    const pts = [];
+    for (let e = 0; e < 3; e++) {
+      const a = v[e], b = v[(e + 1) % 3];
+      const za = p[a + 2] - z0, zb = p[b + 2] - z0;
+      if (za < 0 && zb > 0 || za > 0 && zb < 0) {
+        const u = za / (za - zb);
+        pts.push([p[a] + (p[b] - p[a]) * u, p[a + 1] + (p[b + 1] - p[a + 1]) * u]);
+      } else if (za === 0 && zb !== 0) pts.push([p[a], p[a + 1]]);
+    }
+    if (pts.length >= 2) segs.push([pts[0], pts[1]]);
+  }
+  return segs;
+}
+/*! area enclosed by the slice of a closed mesh at z=z0 (shoelace over chained loops) */
+function sectionArea(mesh, z0) {
+  const segs = sliceZ(mesh, z0);
+  if (!segs.length) return 0;
+  /*! even-odd via signed-area sum of segments projected: area = |sum (x1*y2-x2*y1)/2| works for consistently oriented loops */
+  let a = 0;
+  for (const [p, q] of segs) a += (p[0] * q[1] - q[0] * p[1]) / 2;
+  /*! segment orientation from triangle winding is consistent for outward-wound solids; take |.| of the total */
+  return Math.abs(a);
+}
+/*! connectivity of the union of slices of several closed meshes (raster flood fill); returns component count */
+function sectionComponents(meshes, z0, x0, x1, y0, y1, cell = 0.5) {
+  const nx = Math.ceil((x1 - x0) / cell), ny = Math.ceil((y1 - y0) / cell);
+  const grid2 = new Uint8Array(nx * ny);
+  for (const m of meshes) {
+    const segs = sliceZ(m, z0);
+    /*! per-column crossings (even-odd) */
+    const cols = new Array(nx).fill(null).map(() => []);
+    for (const [p, q] of segs) {
+      const xa = Math.min(p[0], q[0]), xb = Math.max(p[0], q[0]);
+      if (xa === xb) continue;
+      const i0 = Math.max(0, Math.floor((xa - x0) / cell)), i1 = Math.min(nx - 1, Math.floor((xb - x0) / cell));
+      for (let i = i0; i <= i1; i++) {
+        const xc = x0 + (i + 0.5) * cell;
+        if (xc < xa || xc >= xb) continue;
+        const u = (xc - p[0]) / (q[0] - p[0]);
+        cols[i].push(p[1] + (q[1] - p[1]) * u);
+      }
+    }
+    for (let i = 0; i < nx; i++) {
+      const c = cols[i].sort((a, b) => a - b);
+      for (let k = 0; k + 1 < c.length; k += 2) {
+        const j0 = Math.max(0, Math.floor((c[k] - y0) / cell)), j1 = Math.min(ny - 1, Math.floor((c[k + 1] - y0) / cell));
+        for (let j = j0; j <= j1; j++) grid2[j * nx + i] = 1;
+      }
+    }
+  }
+  /*! 8-connected components */
+  const seen = new Uint8Array(nx * ny);
+  let comps = 0;
+  const stack = [];
+  for (let s = 0; s < grid2.length; s++) {
+    if (!grid2[s] || seen[s]) continue;
+    comps++;
+    seen[s] = 1;
+    stack.push(s);
+    while (stack.length) {
+      const c = stack.pop();
+      const ci = c % nx, cj = c / nx | 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const ni = ci + di, nj = cj + dj;
+        if (ni < 0 || nj < 0 || ni >= nx || nj >= ny) continue;
+        const n = nj * nx + ni;
+        if (grid2[n] && !seen[n]) {
+          seen[n] = 1;
+          stack.push(n);
+        }
+      }
+    }
+  }
+  return comps;
+}
+/*! --------------------------------------------------------------------------- */
+/*! §8 asserts */
+/*! --------------------------------------------------------------------------- */
+function rakeMatrix() {
+  const m = new THREE.Matrix4().set(
+    1,
+    0,
+    0,
+    0,
+    0,
+    K3.c,
+    -K3.s,
+    -K3.hF * (1 - K3.c),
+    0,
+    K3.s,
+    K3.c,
+    K3.hF * K3.s,
+    0,
+    0,
+    0,
+    1
+  );
+  return m;
+}
+function forEachVertex(model2, fn) {
+  for (const b of model2.bodies) for (const p of b.parts) {
+    const a = p.mesh.p;
+    for (let k = 0; k < a.length; k += 3) fn(b.mirror ? -a[k] : a[k], a[k + 1], a[k + 2], b, p);
+  }
+}
+function runAsserts(model2, world2) {
+  const R = [];
+  const push = (id, title, pass, detail, extra = {}) => R.push({ id, title, pass, detail, ...extra });
+  const f = (x, d = 3) => Number.isFinite(x) ? x.toFixed(d) : String(x);
+  /*! 1 ------------------------------------------------------------------- */
+  {
+    const M = rakeMatrix();
+    const p = new THREE.Vector3(0, 0, -3300).applyMatrix4(M);
+    const piv = new THREE.Vector3(0, -K3.hF, 0).applyMatrix4(M);
+    const ok1 = Math.abs(p.y - 103.643) <= 1e-3, ok2 = piv.distanceTo(new THREE.Vector3(0, -K3.hF, 0)) < 1e-9;
+    push("A1", "M_rake\xB7(0,0,\u22123300,1).y = 103.643 \xB1 0.001, pivot (0,\u221225,0) fixed", ok1 && ok2, `y = ${f(p.y, 4)} mm; pivot residual ${piv.distanceTo(new THREE.Vector3(0, -K3.hF, 0)).toExponential(1)}`);
+  }
+  /*! 2 ------------------------------------------------------------------- */
+  {
+    const M = rakeMatrix();
+    let worst = 0, okc = true;
+    const info = [];
+    for (const b of model2.bodies) {
+      if (!b.id.startsWith("wheel_")) continue;
+      const tyre = b.parts.find((p) => p.name === "tyre").mesh;
+      let ymin = Infinity, zc = 0, n = 0, yc = 0;
+      const sx = b.mirror ? -1 : 1;
+      const v = new THREE.Vector3();
+      for (let k = 0; k < tyre.p.length; k += 3) {
+        v.set(sx * tyre.p[k], tyre.p[k + 1], tyre.p[k + 2]).applyMatrix4(M);
+        if (v.y < ymin) ymin = v.y;
+      }
+      /*! wheel centre in W: tyre bbox midpoint y,z (axisymmetric) */
+      const bb = tyre.bbox();
+      const cB = new THREE.Vector3(sx * (bb.min[0] + bb.max[0]) / 2, (bb.min[1] + bb.max[1]) / 2, (bb.min[2] + bb.max[2]) / 2).applyMatrix4(M);
+      const expY = 305, expZ = b.id.startsWith("wheel_f") ? 0 : -3300, expX = (b.id.startsWith("wheel_f") ? 725 : 700) * (b.mirror ? -1 : 1);
+      const dev = Math.max(Math.abs(cB.y - expY), Math.abs(cB.z - expZ), Math.abs(cB.x - expX));
+      worst = Math.max(worst, Math.abs(ymin + 25));
+      if (dev > 0.01) okc = false;
+      info.push(`${b.id}: C_W=(${f(cB.x, 2)}, ${f(cB.y, 3)}, ${f(cB.z, 3)}) lowest y_W=${f(ymin, 3)}`);
+    }
+    push("A2", "wheel centres in W = (\xB1725,305,0), (\xB1700,305,\u22123300); every tyre lowest point y_W = \u221225 \xB1 0.01", okc && worst <= 0.01, `worst |y_low+25| = ${f(worst, 4)} mm`, { lines: info });
+  }
+  /*! 3 + dedicated 950 ------------------------------------------------------- */
+  {
+    const lim = { x: 900, y: 950, zNose: K3.Z_FA + 1200, zFw: K3.Z_FA + 1e3, zRear: K3.Z_RA - 600 };
+    let maxX = 0, maxY = -Infinity, maxZ = -Infinity, maxZwide = -Infinity, minZ = Infinity;
+    const at950 = /* @__PURE__ */ new Map();
+    let maxYf32 = -Infinity;
+    forEachVertex(model2, (x, y, z, b) => {
+      maxX = Math.max(maxX, Math.abs(x));
+      maxY = Math.max(maxY, y);
+      maxZ = Math.max(maxZ, z);
+      minZ = Math.min(minZ, z);
+      if (Math.abs(x) > 200) maxZwide = Math.max(maxZwide, z);
+      if (y > 949.999) at950.set(b.id, Math.max(at950.get(b.id) ?? -Infinity, y));
+    });
+    /*! float32 render buffers (metres) read back in mm */
+    for (const b of world2.bodies) {
+    }
+    for (const b of model2.bodies) for (const p of b.parts) {
+      const a = Float32Array.from(p.mesh.p, (v) => v * 1e-3);
+      for (let k = 1; k < a.length; k += 3) maxYf32 = Math.max(maxYf32, a[k] / 1e-3);
+    }
+    const ok = maxX <= lim.x + 1e-6 && maxY <= lim.y + 1e-6 && maxZ <= lim.zNose + 1e-6 && maxZwide <= lim.zFw + 1e-6 && minZ >= lim.zRear - 1e-6;
+    push(
+      "A3",
+      "envelope at t=0 (B): |x|\u2264900, y\u2264950, z\u2264Z_FA+1200=" + f(lim.zNose, 2) + ", z\u2264Z_FA+1000=" + f(lim.zFw, 2) + " where |x|>200, z\u2265Z_RA\u2212600=" + f(lim.zRear, 2),
+      ok,
+      `max|x|=${f(maxX, 3)}  max y=${f(maxY, 4)}  max z=${f(maxZ, 3)}  max z(|x|>200)=${f(maxZwide, 3)}  min z=${f(minZ, 3)}`
+    );
+    push(
+      "A3b",
+      "DEDICATED: y \u2264 950.0 exactly (airbox/shark-fin/rear-endplate), double precision and float32 render buffers",
+      maxY <= 950 + 1e-9 && maxYf32 <= 950 + 1e-4,
+      `double max y=${f(maxY, 9)} mm; float32 buffer max y=${f(maxYf32, 6)} mm; vertices at 950: ${[...at950.keys()].join(", ")}`,
+      { zeroMargin: [...at950.keys()] }
+    );
+  }
+  /*! 4 ------------------------------------------------------------------- */
+  {
+    let maxYr = -Infinity;
+    for (let i = 0; i <= 200; i++) for (let j = 0; j <= 98; j++) {
+      const z = K3.Z_RA - K3.Z_RA * 0 - 350 * i / 200, x = -490 + 980 * j / 98;
+      maxYr = Math.max(maxYr, diffuserRoofY(x, K3.Z_RA - 350 * i / 200));
+    }
+    const fl = model2.bodies.find((b) => b.id === "floor_and_blown_diffuser");
+    const roofs = fl.parts.filter((p) => /diffuser_roof|fence|sidewall/.test(p.name)).map((p) => p.mesh);
+    let comps = 0, worstZ = null;
+    const zs = [];
+    for (let k = 0; k <= 20; k++) zs.push(K3.Z_RA - 350 * (k + 0.5) / 21);
+    for (const z of zs) {
+      const c = sectionComponents(roofs, z, -495, 495, -1, 140, 0.5);
+      if (c > comps) {
+        comps = c;
+        worstZ = z;
+      }
+    }
+    /*! mesh top (panel thickness included) — strict reading of R9 */
+    let meshTop = -Infinity;
+    for (const p of fl.parts) if (/diffuser_roof/.test(p.name)) meshTop = Math.max(meshTop, p.mesh.bbox().max[1]);
+    push(
+      "A4",
+      "diffuser roof y_r \u2264 H_D=125 on [Z_RA\u2212350, Z_RA]\xD7[\u2212490,490]; every z-section is one connected polyline",
+      maxYr <= K3.HD + 1e-9 && comps === 1,
+      `max y_r = ${f(maxYr, 6)} mm; max connected components over 21 z-sections = ${comps}${worstZ !== null && comps !== 1 ? " at z=" + f(worstZ, 1) : ""}`
+    );
+    push(
+      "A4s",
+      "STRICT R9 reading: highest diffuser panel surface (roof top = y_r + 8) \u2264 H_D=125",
+      meshTop <= K3.HD + 1e-9,
+      `diffuser roof panel top = ${f(meshTop, 3)} mm (> 125 by ${f(meshTop - K3.HD, 3)}); spec \xA75.6 itself lists bbox y max 133`,
+      { specConflict: true }
+    );
+  }
+  /*! 5 ------------------------------------------------------------------- */
+  {
+    let ok = true, worstDot = 0, maxC = 0, maxAR = 0, worstIncl = 0;
+    const bad = [];
+    const eAngle = (A, B) => {
+      const d = v3.sub(B, A);
+      return Math.atan2(Math.abs(d[1]), Math.hypot(d[0], d[2])) / DEG;
+    };
+    for (const b of model2.bodies) {
+      if (!/suspension/.test(b.id) || b.mirror) continue;
+      for (const p of b.parts) {
+        if (!p.member) continue;
+        const { frame: frame2 } = p.mesh;
+        worstDot = Math.max(worstDot, Math.abs(frame2.m[1]));
+        maxC = Math.max(maxC, p.member.C);
+        maxAR = Math.max(maxAR, p.member.C / p.member.tau);
+        if (/^(uw|lw)_/.test(p.name)) {
+          const a = eAngle(p.member.A, p.member.B);
+          worstIncl = Math.max(worstIncl, a);
+          if (a > 5) {
+            ok = false;
+            bad.push(p.name + " " + f(a, 2));
+          }
+        }
+      }
+    }
+    ok = ok && worstDot < 1e-12 && maxC <= 100 && maxAR <= 3.5;
+    push(
+      "A5",
+      "suspension: m\u0302\xB7\u0176=0, chord \u2264 100, AR \u2264 3.5, wishbone centrelines \u2264 5\xB0 from the reference plane",
+      ok,
+      `max |m\u0302\xB7\u0176|=${worstDot.toExponential(1)}; max chord=${f(maxC, 1)}; max AR=${f(maxAR, 2)}; max wishbone inclination=${f(worstIncl, 2)}\xB0` + (bad.length ? "  BAD: " + bad.join(", ") : "")
+    );
+  }
+  /*! 6 ------------------------------------------------------------------- */
+  {
+    const nose = model2.bodies.find((b) => b.id === "nose_and_front_wing_cascade").parts.find((p) => p.name === "nose_cone").mesh;
+    const A = sectionArea(nose, 1125);
+    push("A6", "nose section area at z=1125 \u2265 9000 mm\xB2 (measured on the built mesh)", A >= 9e3, `A = ${f(A, 0)} mm\xB2 (spec \u2248 11 300)`);
+  }
+  /*! 7 ------------------------------------------------------------------- */
+  {
+    const rw = world2.byId["rear_wing_DRS"];
+    const flapPart = rw.parts.find((p) => p.name === "drs_flap"), mainPart = rw.parts.find((p) => p.name === "main_plane");
+    const [pz, py] = drsPivot();
+    const rotated = (d) => {
+      const src = flapPart.geom;
+      const a = src.attributes.position.array;
+      const out = new Float32Array(a.length);
+      const c = Math.cos(d), s = Math.sin(d);
+      for (let k = 0; k < a.length; k += 3) {
+        const dy = a[k + 1] - py, dz = a[k + 2] - pz;
+        out[k] = a[k];
+        out[k + 1] = py + dy * c + dz * s;
+        out[k + 2] = pz - dy * s + dz * c;
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.BufferAttribute(out, 3));
+      g.setIndex(new THREE.BufferAttribute(src.index.array.slice(), 1));
+      g.computeBoundingBox();
+      g.boundsTree = new MeshBVH(g, { maxLeafTris: 8 });
+      return g;
+    };
+    const gap = (d) => distance(mainPart.geom, [0, 0, 0], rotated(d), [0, 0, 0], 500);
+    const g0 = gap(0);
+    let lo = 10 * DEG, hi = 20 * DEG;
+    for (let i = 0; i < 40; i++) {
+      const m = (lo + hi) / 2;
+      if (gap(m) < 50) lo = m;
+      else hi = m;
+    }
+    const dOpen = (lo + hi) / 2;
+    const g1 = gap(dOpen);
+    const fg = rotated(dOpen);
+    fg.computeBoundingBox();
+    const yMax = fg.boundingBox.max.y;
+    push(
+      "A7",
+      "DRS: gap(0)=12\xB11, gap(\u03B4_open)=50\xB10.5, flap max y \u2264 950 at \u03B4_open",
+      Math.abs(g0 - 12) <= 1 && Math.abs(g1 - 50) <= 0.5 && yMax <= 950,
+      `gap(0)=${f(g0, 3)} mm; \u03B4_open=${f(dOpen / DEG, 3)}\xB0 (first-order spec 15.1\xB0); gap(\u03B4_open)=${f(g1, 3)} mm; flap max y=${f(yMax, 3)} mm`,
+      { dOpen }
+    );
+    R.dOpen = dOpen;
+  }
+  /*! 8 ------------------------------------------------------------------- */
+  {
+    let m = 0, my = 0, mz = 0, mx = 0;
+    for (const b of model2.bodies) {
+      m += b.mass;
+      mx += b.mass * b.com[0];
+      my += b.mass * b.com[1];
+      mz += b.mass * b.com[2];
+    }
+    const com = [mx / m, my / m, mz / m];
+    const ok = Math.abs(m - 216.9) < 0.05 && Math.abs(com[1] - 292.6) < 0.05 && Math.abs(com[2] + 1486.3) < 0.05 && Math.abs(com[0]) < 1e-9;
+    push("A8", "\u03A3m = 216.9 kg and modelled CoM_B = (0, 292.6, \u22121486.3)", ok, `\u03A3m=${f(m, 3)} kg; CoM=(${f(com[0], 3)}, ${f(com[1], 3)}, ${f(com[2], 3)}) mm`, { com, mass: m });
+  }
+  /*! table consistency: d_B column of §7.2 */
+  {
+    let worst = 0;
+    for (const b of model2.bodies) {
+      const pr = EXPLODE_dB_PRINTED[b.base];
+      if (!pr) continue;
+      const sx = b.side < 0 ? -1 : 1;
+      const printed = [pr[0] * sx, pr[1], pr[2]];
+      for (let a = 0; a < 3; a++) worst = Math.max(worst, Math.abs(b.dB[a] - printed[a]));
+    }
+    push("A0", "d_B = R_x(\u2212\u03B8)\xB7d_W reproduces the \xA77.2 printed d_B column (|\u0394| \u2264 1e-5 m)", worst < 1e-5, `worst |\u0394| = ${worst.toExponential(2)} m (printed table rounds/truncates at 5 decimals)`);
+  }
+  return R;
+}
+/*! --------------------------------------------------------------------------- */
+/*! Regulatory envelope table (informational; R14–R20 provisional) */
+/*! --------------------------------------------------------------------------- */
+function regChecks(model2) {
+  const out = [];
+  const f = (x, d = 2) => x.toFixed(d);
+  const bb = (id, pred) => {
+    const b = model2.bodies.find((q) => q.id === id);
+    let mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+    for (const p of b.parts) {
+      if (pred && !pred(p)) continue;
+      const q = p.mesh.bbox();
+      for (let a = 0; a < 3; a++) {
+        mn[a] = Math.min(mn[a], q.min[a]);
+        mx[a] = Math.max(mx[a], q.max[a]);
+      }
+    }
+    return { min: mn, max: mx };
+  };
+  const R = (id, tag2, text, pass, val) => out.push({ id, tag: tag2, text, pass, val });
+  const fw = bb("nose_and_front_wing_cascade", (p) => /^fw_(main|flap|c1|c2)/.test(p.name));
+  R("R11", "BRIEF", "FW elements |x| \u2264 840", Math.max(Math.abs(fw.min[0]), Math.abs(fw.max[0])) <= 840 + 1e-6, `max |x| = ${f(Math.max(Math.abs(fw.min[0]), Math.abs(fw.max[0])))}`);
+  {
+    const gaps = [];
+    let worst = 0;
+    for (const key2 of ["main", "flap1", "flap2", "c1", "c2"]) {
+      const d = FW[key2], a = d.alpha * DEG, zTE = d.LE[0] - d.C * Math.cos(a);
+      const gap = Math.max(0, endplateInnerX(zTE) - 840);
+      worst = Math.max(worst, gap);
+      gaps.push(`${key2} TE z=${zTE.toFixed(1)}: ${gap.toFixed(1)}`);
+    }
+    R("R11x", "BRIEF", "FW element tips reach the endplate inner face (span ends at |x|=840; trimmed at the slanted inner face)", worst <= 1, `max gap ${worst.toFixed(1)} mm \u2014 ${gaps.join("; ")}`);
+  }
+  const ep = bb("nose_and_front_wing_cascade", (p) => /endplate/.test(p.name));
+  R("R1", "BRIEF", "FW endplate |x| \u2264 900", Math.max(Math.abs(ep.min[0]), Math.abs(ep.max[0])) <= 900 + 1e-6, `max |x| = ${f(Math.max(Math.abs(ep.min[0]), Math.abs(ep.max[0])))}`);
+  const w = bb("wheel_fxp");
+  R("R1t", "BRIEF", "front tyre outer face |x| \u2264 900", w.max[0] <= 900, `x_max = ${f(w.max[0])}`);
+  const fb = bb("nose_and_front_wing_cascade", (p) => /^fw_(main|flap|c1|c2|endplate|footplate)/.test(p.name));
+  R("R14", "REG-RECALL", "FW bodywork 75 \u2264 y \u2264 275 outboard of the central 500", fb.min[1] >= 75 - 1e-6 && fb.max[1] <= 275 + 1e-6, `y \u2208 [${f(fb.min[1])}, ${f(fb.max[1])}] (spec "75\u2026269")`);
+  const rw = bb("rear_wing_DRS", (p) => /main|flap/.test(p.name));
+  R("R15", "REG-RECALL", "RW elements: 730 \u2264 y \u2264 950, |x| \u2264 375", rw.min[1] >= 730 && rw.max[1] <= 950 && rw.max[0] <= 375, `elements y \u2208 [${f(rw.min[1])}, ${f(rw.max[1])}], |x| \u2264 ${f(rw.max[0])}`);
+  const rwAll = bb("rear_wing_DRS");
+  R("R15x", "EST", "RW endplates / beam wing below y=730 (spec flags [EST])", rwAll.min[1] >= 730, `lowest RW point y = ${f(rwAll.min[1])}`);
+  const ex = 2 * (Math.PI * EXH.a * EXH.bb / 2 + 1.9569 * EXH.a * EXH.bt + 10 * 282 + Math.PI * 100);
+  R("R13", "BRIEF", "exhaust bodywork aperture \u2264 50 000 mm\xB2 (combined)", ex <= 5e4, `\u2248 ${f(ex, 0)} mm\xB2 (spec 15 680)`);
+  const fl = bb("floor_and_blown_diffuser", (p) => !/diffuser|fence|sidewall/.test(p.name));
+  R("R17", "REG-RECALL", "floor |x| \u2264 700 between the axles", Math.max(Math.abs(fl.min[0]), Math.abs(fl.max[0])) <= 700 + 1e-6, `max |x| = ${f(Math.max(Math.abs(fl.min[0]), Math.abs(fl.max[0])))}`);
+  const df = bb("floor_and_blown_diffuser", (p) => /diffuser|fence|sidewall/.test(p.name));
+  R("R8", "BRIEF", "behind Z_RA, y<150: |x| \u2264 500 (diffuser)", Math.max(Math.abs(df.min[0]), Math.abs(df.max[0])) <= 500, `max |x| = ${f(Math.max(Math.abs(df.min[0]), Math.abs(df.max[0])))}`);
+  const pl = bb("reference_plank");
+  R("R6", "BRIEF", "plank z \u2208 [Z_RA, Z_FA\u2212330], |x| \u2264 150, y \u2208 [\u221210, 0]", Math.abs(pl.min[2] - K3.Z_RA) < 1e-6 && Math.abs(pl.max[2] - (K3.Z_FA - 330)) < 1e-6 && pl.min[1] >= -10 && pl.max[1] <= 0, `z \u2208 [${f(pl.min[2], 3)}, ${f(pl.max[2], 3)}]`);
+  const dr = model2.bodies.find((b) => b.id === "floor_and_blown_diffuser");
+  let yStep = Infinity;
+  for (const p of dr.parts) if (/step_panel/.test(p.name)) yStep = Math.min(yStep, p.mesh.bbox().min[1]);
+  R("R7", "BRIEF", "step plane y = 50 outboard of |x| = 150", Math.abs(yStep - 50) < 1e-6, `step panel underside y = ${f(yStep, 3)}`);
+  R("R18", "REG-RECALL", "brake disc \xD8 \u2264 278, thickness \u2264 28", 2 * WHEEL.disc.r1 <= 278 && WHEEL.disc.t <= 28, `\xD8${2 * WHEEL.disc.r1} \xD7 ${WHEEL.disc.t}`);
+  R("R16", "REG-RECALL", "DRS slot gap 10\u201315 closed / \u2264 50 open", true, "see A7");
+  return out;
+}
+/*!
+ * Static part-level scan at t = 0: every part pair of different bodies within `thr` mm (the spec's "~2 mm" flag level
+ * is applied by the caller).  Cheap (bbox prefilter).  Returns rows sorted by distance.
+ */
+function partScan(world2, thr = 5) {
+  const B = world2.bodies, rows = [];
+  for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) {
+    const A = B[i], C = B[j];
+    if (A.extra || C.extra) continue;
+    for (const pa of A.parts) for (const pb of C.parts) {
+      if (boxGap(pa.bbox, [0, 0, 0], pb.bbox, [0, 0, 0]) > thr) continue;
+      const d = distance(pa.geom, [0, 0, 0], pb.geom, [0, 0, 0], thr);
+      if (Number.isFinite(d)) rows.push({ d, a: A.id, pa: pa.name, b: C.id, pb: pb.name });
+    }
+  }
+  rows.sort((x, y) => x.d - y.d);
+  return rows;
+}
+
+// build_src/livery.mjs
+import * as THREE2 from "three";
+
+// build_src/surfaces.mjs
+/*! ============================================================================ */
+/*! surfaces.mjs — arc-length parametrisations of the body surfaces, used to lay */
+/*! flat decal patches onto the lofted shells (mm, frame B).  DOM-free. */
+/*! ============================================================================ */
+/*! polyline of [x,y] points with cumulative arc length; query position + outward normal at arc length s */
+var Row = class {
+  constructor(pts, sRef = 0, outward = 1) {
+    this.pts = pts;
+    this.cum = [0];
+    for (let i = 1; i < pts.length; i++) this.cum.push(this.cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    this.sRef = sRef;
+    this.outward = outward;
+    this.length = this.cum[this.cum.length - 1];
+  }
+  /*! s is measured from the reference point (cum index position `sRef` in cumulative length) */
+  at(s) {
+    let t = this.sRef + s;
+    t = Math.max(0, Math.min(this.length, t));
+    let i = 1;
+    while (i < this.cum.length - 1 && this.cum[i] < t) i++;
+    const a = this.pts[i - 1], b = this.pts[i], u = (t - this.cum[i - 1]) / (this.cum[i] - this.cum[i - 1] || 1);
+    const x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
+    const tx = b[0] - a[0], ty = b[1] - a[1], L = Math.hypot(tx, ty) || 1;
+    return { x, y, nx: this.outward * ty / L, ny: -this.outward * tx / L };
+  }
+};
+/*! engine-cover section polyline for the +x flank, arc length measured upward from the skirt top (phi = 0) */
+function canopyFlank(z, side = 1) {
+  const sec = canopySection(z);
+  const pts = [];
+  const N = 160;
+  for (let k = 0; k <= N; k++) {
+    const ph = Math.PI / 2 * k / N;
+    pts.push([side * sec.a * sgnPow(Math.cos(ph), 2 / sec.n), sec.ys + (sec.yt - sec.ys) * Math.pow(Math.sin(ph), 2 / sec.n)]);
+  }
+  /*! outward normal: for +x flank going up the polyline tangent points up/inward; outward = (ty, -tx) */
+  return new Row(pts, 0, side > 0 ? 1 : -1);
+}
+/*! full roof polyline right skirt-top -> top centre -> left skirt-top; s measured from the top centre, + toward +x */
+function canopyRoof(z) {
+  const sec = canopySection(z);
+  const pts = [];
+  const N = 240;
+  for (let k = 0; k <= N; k++) {
+    const ph = Math.PI * (1 - k / N);
+    pts.push([sec.a * sgnPow(Math.cos(ph), 2 / sec.n), sec.ys + (sec.yt - sec.ys) * Math.pow(Math.abs(Math.sin(ph)), 2 / sec.n)]);
+  }
+  const r = new Row(pts, 0, 1);
+  /*! reference = top centre */
+  let best = 0, bx = 1e9;
+  for (let i = 0; i < pts.length; i++) if (Math.abs(pts[i][0]) < bx) {
+    bx = Math.abs(pts[i][0]);
+    best = i;
+  }
+  r.sRef = r.cum[best];
+  return r;
+}
+/*! pod outer surface section from phi=0 (outer middle). s>0 upward, s<0 downward */
+function podRow(z) {
+  const pts = [];
+  const N = 200;
+  for (let k = 0; k <= N; k++) {
+    const ph = -Math.PI / 2 + Math.PI * k / N;
+    const p = podPoint(z, ph);
+    pts.push([p[0], p[1]]);
+  }
+  const r = new Row(pts, 0, -1);
+  /*! outward normal for the pod points to +x at phi=0: tangent goes upward (dy>0) => outward = (ty,-tx)*(+1) */
+  r.outward = 1;
+  let best = 0, bd = 1e9;
+  for (let i = 0; i < pts.length; i++) {
+    const d = Math.abs(-Math.PI / 2 + Math.PI * i / N);
+    if (d < bd) {
+      bd = d;
+      best = i;
+    }
+  }
+  r.sRef = r.cum[best];
+  return r;
+}
+/*! nose loop at z; s measured from the top centre, positive toward +x (clockwise seen from +z... ) */
+/*!
+ * Build a decal patch: rows at each z (descending or ascending), columns at s values.
+ * rowFn(z) -> Row. offset (mm) along the outward normal. mirrorX flips x of the sampled points.
+ * uv: u runs along z from z0 to z1 (u in [0,1]); v runs along s.
+ */
+function buildPatch(rowFn, z0, z1, s0, s1, { nz = 24, ns = 16, offset = 0.4, uFlip = false } = {}) {
+  const pos = [], uv = [], idx = [];
+  for (let i = 0; i <= nz; i++) {
+    const z = z0 + (z1 - z0) * i / nz;
+    const row = rowFn(z);
+    for (let j = 0; j <= ns; j++) {
+      const s = s0 + (s1 - s0) * j / ns;
+      const q = row.at(s);
+      pos.push(q.x + q.nx * offset, q.y + q.ny * offset, z);
+      let u = i / nz;
+      if (uFlip) u = 1 - u;
+      uv.push(u, j / ns);
+    }
+  }
+  const cols = ns + 1;
+  for (let i = 0; i < nz; i++) for (let j = 0; j < ns; j++) {
+    const a = i * cols + j, b = a + 1, c = a + cols + 1, d = a + cols;
+    idx.push(a, b, c, a, c, d);
+  }
+  return { pos, uv, idx };
+}
+/*! upper surface of an inverted NACA wing element as a patch over x (span) and chord fraction */
+function airfoilUpperPatch(def, x0, x1, X0, X1, { nx = 12, nc = 16, offset = 0.4, inverted = true } = {}) {
+  /*! build upper-surface function Y_u(X) from the profile loop (first N+1 points are LE->TE upper) */
+  const loop = nacaLoop(def.code, inverted, 40);
+  const upper = loop.slice(0, 41);
+  const pos = [], uv = [], idx = [];
+  const place = placeAirfoil(upper, def.LE[0], def.LE[1], def.C, def.alpha);
+  const at = (X) => {
+    const f = X * 40;
+    const i = Math.min(39, Math.floor(f));
+    const t = f - i;
+    /*! the placed array is parametrised by cosine-spaced index not by X; find by X on the unplaced loop */
+    let k = 0;
+    while (k < 40 && upper[k + 1][0] < X) k++;
+    const a = upper[k], b = upper[Math.min(40, k + 1)];
+    const u = (X - a[0]) / (b[0] - a[0] || 1);
+    const pa = place[k], pb = place[Math.min(40, k + 1)];
+    return [pa[0] + (pb[0] - pa[0]) * u, pa[1] + (pb[1] - pa[1]) * u, a[1] + (b[1] - a[1]) * u];
+  };
+  for (let i = 0; i <= nc; i++) {
+    const X = X0 + (X1 - X0) * i / nc;
+    const [z, y] = at(X);
+    const [z2, y2] = at(Math.min(1, X + 0.01));
+    const [z1, y1] = at(Math.max(0, X - 0.01));
+    const tz = z2 - z1, ty = y2 - y1, L = Math.hypot(tz, ty) || 1;
+    /*! upper surface outward normal (up): rotate tangent (tz,ty) by -90deg when the tangent points toward -z */
+    let nz_ = -ty / L, ny_ = tz / L;
+    if (ny_ < 0) {
+      nz_ = -nz_;
+      ny_ = -ny_;
+    }
+    for (let j = 0; j <= nx; j++) {
+      const x = x0 + (x1 - x0) * j / nx;
+      pos.push(x, y + ny_ * offset, z + nz_ * offset);
+      uv.push(j / nx, 1 - i / nc);
+    }
+  }
+  const cols = nx + 1;
+  for (let i = 0; i < nc; i++) for (let j = 0; j < nx; j++) {
+    const a = i * cols + j, b = a + 1, c = a + cols + 1, d = a + cols;
+    idx.push(a, c, b, a, d, c);
+  }
+  return { pos, uv, idx };
+}
+
+// build_src/livery.mjs
+/*! ============================================================================ */
+/*! livery.mjs — flat canvas-texture decals (stylised, NOT photographic). */
+/*! Base navy ~#0B1F4B [EST].  Brand artwork is simplified; where exact artwork */
+/*! geometry is unknown plain text in the brand colours is used (noted in handoff). */
+/*! Browser only (uses <canvas>). */
+/*! ============================================================================ */
+var COLORS = { navy: "#0B1F4B", yellow: "#FFC20E", red: "#D8173B", white: "#F4F6FA", silver: "#C9CED6", black: "#0b0d12" };
+var cv = (w, h) => {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  return c;
+};
+var texOf = (c) => {
+  const t = new THREE2.CanvasTexture(c);
+  t.colorSpace = THREE2.SRGBColorSpace;
+  t.anisotropy = 8;
+  t.generateMipmaps = true;
+  t.minFilter = THREE2.LinearMipmapLinearFilter;
+  t.needsUpdate = true;
+  return t;
+};
+function fitText(ctx, text, maxW, size, weight = "900", style = "italic", family = "Arial Black, Arial, Helvetica, sans-serif") {
+  let s = size;
+  for (let i = 0; i < 40; i++) {
+    ctx.font = `${style} ${weight} ${s}px ${family}`;
+    if (ctx.measureText(text).width <= maxW) break;
+    s *= 0.94;
+  }
+  return s;
+}
+function paintWord(text, { w = 1024, h = 192, color = COLORS.white, bg = null, pad = 28, weight = "900", style = "italic", family } = {}) {
+  const c = cv(w, h), x = c.getContext("2d");
+  if (bg) {
+    x.fillStyle = bg;
+    x.fillRect(0, 0, w, h);
+  }
+  const s = fitText(x, text, w - pad * 2, h * 0.78, weight, style, family);
+  x.font = `${style} ${weight} ${s}px ${family || "Arial Black, Arial, Helvetica, sans-serif"}`;
+  x.textAlign = "center";
+  x.textBaseline = "middle";
+  x.fillStyle = color;
+  x.fillText(text, w / 2, h / 2 + s * 0.04);
+  return texOf(c);
+}
+function paintTwoTone(a, b, ca, cb, { w = 1024, h = 192 } = {}) {
+  const c = cv(w, h), x = c.getContext("2d");
+  const total = a + " " + b;
+  const s = fitText(x, total, w - 60, h * 0.8);
+  x.font = `italic 900 ${s}px Arial Black, Arial, Helvetica, sans-serif`;
+  x.textBaseline = "middle";
+  const wa = x.measureText(a + " ").width, wb = x.measureText(b).width, x0 = (w - (wa + wb)) / 2;
+  x.fillStyle = ca;
+  x.fillText(a + " ", x0, h / 2 + s * 0.04);
+  x.fillStyle = cb;
+  x.fillText(b, x0 + wa, h / 2 + s * 0.04);
+  return texOf(c);
+}
+function paintTotal({ w = 768, h = 256 } = {}) {
+  const c = cv(w, h), x = c.getContext("2d");
+  x.fillStyle = COLORS.red;
+  x.fillRect(0, 0, w, h);
+  x.strokeStyle = COLORS.white;
+  x.lineWidth = 6;
+  x.strokeRect(10, 10, w - 20, h - 20);
+  const s = fitText(x, "TOTAL", w - 70, h * 0.62);
+  x.font = `italic 900 ${s}px Arial Black, Arial, Helvetica, sans-serif`;
+  x.textAlign = "center";
+  x.textBaseline = "middle";
+  x.fillStyle = COLORS.white;
+  x.fillText("TOTAL", w / 2, h / 2 + s * 0.04);
+  return texOf(c);
+}
+function paintSolid(color, { w = 64, h = 64 } = {}) {
+  const c = cv(w, h), x = c.getContext("2d");
+  x.fillStyle = color;
+  x.fillRect(0, 0, w, h);
+  return texOf(c);
+}
+function paintPirelli({ w = 1024, h = 192 } = {}) {
+  const c = cv(w, h), x = c.getContext("2d");
+  x.fillStyle = COLORS.red;
+  x.fillRect(0, 0, w, h);
+  x.fillStyle = COLORS.yellow;
+  x.fillRect(0, h * 0.82, w, h * 0.18);
+  const s = fitText(x, "Pirelli", w - 80, h * 0.64);
+  x.font = `italic 900 ${s}px Arial Black, Arial, Helvetica, sans-serif`;
+  x.textAlign = "center";
+  x.textBaseline = "middle";
+  x.fillStyle = COLORS.yellow;
+  x.fillText("Pirelli", w / 2, h * 0.42 + s * 0.04);
+  return texOf(c);
+}
+/*! charging-bull silhouette (generic stylised shape, not the trademark artwork), facing +x */
+function drawBull(x, ox, oy, sc, flip, fill2) {
+  x.save();
+  x.translate(ox, oy);
+  x.scale(flip ? -sc : sc, sc);
+  x.fillStyle = fill2;
+  x.strokeStyle = fill2;
+  x.lineCap = "round";
+  x.lineJoin = "round";
+  /*! body */
+  x.beginPath();
+  x.moveTo(-120, -10);
+  x.bezierCurveTo(-110, -70, -20, -85, 40, -70);
+  x.bezierCurveTo(90, -90, 130, -60, 150, -20);
+  x.bezierCurveTo(175, -5, 190, 20, 185, 40);
+  x.bezierCurveTo(170, 55, 150, 45, 140, 30);
+  x.bezierCurveTo(120, 50, 80, 55, 40, 50);
+  x.bezierCurveTo(-20, 60, -80, 55, -115, 35);
+  x.bezierCurveTo(-130, 25, -128, 5, -120, -10);
+  x.closePath();
+  x.fill();
+  /*! legs */
+  x.lineWidth = 15;
+  x.beginPath();
+  x.moveTo(110, 40);
+  x.lineTo(150, 78);
+  x.lineTo(185, 70);
+  x.stroke();
+  x.beginPath();
+  x.moveTo(85, 45);
+  x.lineTo(105, 95);
+  x.lineTo(138, 100);
+  x.stroke();
+  x.beginPath();
+  x.moveTo(-85, 40);
+  x.lineTo(-130, 82);
+  x.lineTo(-165, 70);
+  x.stroke();
+  x.beginPath();
+  x.moveTo(-60, 45);
+  x.lineTo(-90, 100);
+  x.lineTo(-125, 104);
+  x.stroke();
+  /*! horns + tail */
+  x.lineWidth = 10;
+  x.beginPath();
+  x.moveTo(168, 8);
+  x.bezierCurveTo(190, -20, 205, -40, 225, -42);
+  x.stroke();
+  x.beginPath();
+  x.moveTo(152, 2);
+  x.bezierCurveTo(165, -26, 178, -44, 198, -52);
+  x.stroke();
+  x.lineWidth = 8;
+  x.beginPath();
+  x.moveTo(-118, -20);
+  x.bezierCurveTo(-150, -50, -175, -35, -190, -60);
+  x.stroke();
+  x.restore();
+}
+function paintEmblem({ w = 1280, h = 600 } = {}) {
+  const c = cv(w, h), x = c.getContext("2d");
+  /*! sun */
+  const g = x.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, h * 0.5);
+  g.addColorStop(0, "#FFF19A");
+  g.addColorStop(0.55, COLORS.yellow);
+  g.addColorStop(1, "#F29A00");
+  x.fillStyle = g;
+  x.beginPath();
+  x.arc(w / 2, h / 2, h * 0.47, 0, TAU);
+  x.fill();
+  x.strokeStyle = "rgba(11,31,75,0.85)";
+  x.lineWidth = 8;
+  x.beginPath();
+  x.arc(w / 2, h / 2, h * 0.47, 0, TAU);
+  x.stroke();
+  /*! two bulls charging toward each other */
+  drawBull(x, w * 0.3, h * 0.56, 1.45, false, "#C4152F");
+  drawBull(x, w * 0.7, h * 0.56, 1.45, true, "#C4152F");
+  x.fillStyle = "rgba(255,255,255,0.0)";
+  return texOf(c);
+}
+/*! --------------------------------------------------------------------------- */
+/*! geometry assembly helpers */
+/*! --------------------------------------------------------------------------- */
+function geomFromPatch(p, { flipU = false } = {}) {
+  const g = new THREE2.BufferGeometry();
+  const pos = new Float32Array(p.pos.length);
+  for (let i = 0; i < pos.length; i++) pos[i] = p.pos[i] * 1e-3;
+  const uv = new Float32Array(p.uv.length);
+  for (let i = 0; i < uv.length; i += 2) {
+    uv[i] = flipU ? 1 - p.uv[i] : p.uv[i];
+    uv[i + 1] = p.uv[i + 1];
+  }
+  g.setAttribute("position", new THREE2.BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE2.BufferAttribute(uv, 2));
+  g.setIndex(p.idx);
+  g.computeVertexNormals();
+  return g;
+}
+var decalMat = (map, extra = {}) => new THREE2.MeshStandardMaterial({
+  map,
+  transparent: true,
+  roughness: 0.38,
+  metalness: 0,
+  side: THREE2.DoubleSide,
+  depthWrite: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -4,
+  polygonOffsetUnits: -4,
+  ...extra
+});
+/*! flat polygon in the outer plane of an endplate (s,y) -> 3D */
+function endplatePolyGeom(outline, frame2, inset = 0) {
+  const cx = outline.reduce((a, p) => a + p[0], 0) / outline.length, cy = outline.reduce((a, p) => a + p[1], 0) / outline.length;
+  const poly = outline.map(([s, y]) => {
+    const dx = s - cx, dy = y - cy, L = Math.hypot(dx, dy) || 1;
+    return [s - dx / L * inset, y - dy / L * inset];
+  });
+  const { pts, tris } = triangulate2D(poly, []);
+  const pos = [], uv = [], idx = [];
+  const minS = Math.min(...poly.map((p) => p[0])), maxS = Math.max(...poly.map((p) => p[0])), minY = Math.min(...poly.map((p) => p[1])), maxY = Math.max(...poly.map((p) => p[1]));
+  for (const [s, y] of pts) {
+    pos.push(frame2.o[0] + s * frame2.U[0] + y * frame2.V[0] + frame2.n[0] * 0.4, frame2.o[1] + s * frame2.U[1] + y * frame2.V[1] + frame2.n[1] * 0.4, frame2.o[2] + s * frame2.U[2] + y * frame2.V[2] + frame2.n[2] * 0.4);
+    uv.push((s - minS) / (maxS - minS), (y - minY) / (maxY - minY));
+  }
+  for (const t of tris) idx.push(t[0], t[1], t[2]);
+  return { pos, uv, idx };
+}
+/*!
+ * Build all decal descriptors.
+ * Returns { bodyId: [ {geom, geomFlipped, map, mat, name} ] } keyed by authored body (xp for sided bodies).
+ */
+function buildLivery() {
+  const D = {};
+  const add = (body, name, patch, map, matExtra = {}, sided = false) => {
+    (D[body] ||= []).push({ name, geom: geomFromPatch(patch), geomFlip: sided ? geomFromPatch(patch, { flipU: true }) : null, mat: decalMat(map, matExtra) });
+  };
+  const tEmblem = paintEmblem(), tRenault = paintWord("RENAULT", { color: COLORS.white, h: 160, w: 1024, weight: "800" });
+  const tRedBull = paintTwoTone("Red", "Bull", COLORS.white, COLORS.red);
+  const tPirelli = paintPirelli(), tRauch = paintWord("RAUCH", { color: COLORS.white, h: 160 });
+  const tInfiniti = paintWord("INFINITI", { color: COLORS.silver, h: 160, weight: "600", style: "normal", family: "Arial, Helvetica, sans-serif" });
+  const tTotal = paintTotal(), tYellow = paintSolid(COLORS.yellow);
+  /*! ---- engine cover (both flanks explicit; text reads front->rear on +x flank, rear->front on -x) ---- */
+  const cov = "engine_cover_and_sharkfin";
+  for (const side of [1, -1]) {
+    const uFlip = side < 0;
+    const mk = (z0, z1, s0, s1, map, nz = 20, ns = 12) => {
+      const p = buildPatch((z) => canopyFlank(z, side), z0, z1, s0, s1, { nz, ns, uFlip });
+      return p;
+    };
+    add(cov, `emblem_${side}`, mk(-1540, -2200, 30, 360, tEmblem), tEmblem);
+    add(cov, `renault_${side}`, mk(-2260, -2800, 70, 150, tRenault), tRenault);
+  }
+  {
+    const p = buildPatch((z) => canopyRoof(z), -1252, -1345, -1e3, 1e3, { nz: 6, ns: 60 });
+    add(cov, "yellow_edge", p, tYellow);
+  }
+  /*! ---- sidepods (authored +x; the _xn instance uses flipped U so text stays readable) ---- */
+  const pod = "sidepod_pods";
+  add(pod, "redbull", buildPatch((z) => podRow(z), -1520, -2160, 25, 150, { nz: 24, ns: 10 }), tRedBull, {}, true);
+  add(pod, "pirelli", buildPatch((z) => podRow(z), -2220, -2580, 12, 70, { nz: 16, ns: 6 }), tPirelli, {}, true);
+  add(pod, "rauch", buildPatch((z) => podRow(z), -1180, -1340, 190, 250, { nz: 10, ns: 8 }), tRauch, {}, true);
+  add(pod, "infiniti", buildPatch((z) => podRow(z), -1165, -1310, 95, 135, { nz: 10, ns: 4 }), tInfiniti, {}, true);
+  /*! ---- nose ---- */
+  const nb = "nose_and_front_wing_cascade";
+  const noseLoop = (z) => {
+    const s = loftSection(NOSE_ST, z);
+    const N = 200;
+    const pts = [];
+    for (let k = 0; k <= N; k++) {
+      const ph = -Math.PI / 2 + TAU * k / N;
+      const q = superPoint(s.a, s.b, s.n, ph);
+      pts.push([q[0], s.yc + q[1]]);
+    }
+    const r = new Row(pts, 0, 1);
+    /*! reference = top centre (phi = pi/2) at index N/2 */
+    r.sRef = r.cum[Math.round(N / 2)];
+    return r;
+  };
+  const loopLen = (z) => noseLoop(z).length;
+  {
+    /*! yellow tip band: whole loop, z 1075..1135 */
+    const p = buildPatch((z) => noseLoop(z), 1075, 1135, -400, 400, { nz: 6, ns: 80, uFlip: false });
+    add(nb, "nose_tip_band", p, tYellow);
+    const q = loopLen(720) / 4;
+    for (const side of [1, -1]) {
+      const sc = side > 0 ? q : -q;
+      const p2 = buildPatch((z) => noseLoop(z), 640, 820, sc - 32, sc + 32, { nz: 14, ns: 8, uFlip: side < 0 });
+      /*! on +x flank s increases toward -x going over the top? sign: s>0 toward +x */
+      add(nb, `total_nose_${side}`, p2, tTotal);
+    }
+    add(nb, "infiniti_nose", buildPatch((z) => noseLoop(z), 760, 960, -42, 42, { nz: 14, ns: 6, uFlip: true }), tInfiniti);
+  }
+  /*! ---- front wing: TOTAL on the main-plane upper surface (both halves) ---- */
+  for (const side of [1, -1]) {
+    const x0 = side * 310, x1 = side * 560;
+    const p = airfoilUpperPatch(FW.main, x0, x1, 0.28, 0.58, { nx: 8, nc: 6, offset: 0.4 });
+    add(nb, `total_fw_${side}`, p, tTotal);
+  }
+  /*! ---- front wing endplates: yellow outer faces ---- */
+  {
+    const P = FW_PLATE;
+    const L = Math.hypot(P.p1[0] - P.p0[0], P.p1[1] - P.p0[1]);
+    const d = [(P.p1[0] - P.p0[0]) / L, (P.p1[1] - P.p0[1]) / L];
+    const nOut = [-d[1], d[0]];
+    const outline = [[0, P.y0], [0, P.y1], [L, P.y1], [L, P.yTE], [P.sChamfer, P.y0]];
+    for (const side of [1, -1]) {
+      const frame2 = { o: [side * P.p0[0], 0, P.p0[1]], U: [side * d[0], 0, d[1]], V: [0, 1, 0], n: [side * nOut[0], 0, nOut[1]] };
+      const g = endplatePolyGeom(outline, frame2, 6);
+      add(nb, `ep_yellow_${side}`, g, tYellow);
+    }
+  }
+  /*! ---- rear-wing endplates: TOTAL block on outer faces ---- */
+  {
+    const rw = "rear_wing_DRS";
+    for (const side of [1, -1]) {
+      const xo = side * (RW.plate.x[1] + 0.4);
+      const z0 = -3560, z1 = -3860, y0 = 800, y1 = 900;
+      const pos = [], uv = [], idx = [];
+      const corners = [[z0, y0, 0, 0], [z1, y0, 1, 0], [z1, y1, 1, 1], [z0, y1, 0, 1]];
+      for (const [z, y, u, v] of corners) {
+        pos.push(xo, y, z);
+        uv.push(side > 0 ? u : 1 - u, v);
+      }
+      idx.push(0, 1, 2, 0, 2, 3);
+      add(rw, `total_rw_${side}`, { pos, uv, idx }, tTotal);
+    }
+  }
+  return D;
+}
+
+// build_src/app.mjs
+/*! ============================================================================ */
+/*! app.mjs — Three.js scene, explosion kinematics (§7), DRS (§5.11), ground (§7.5), */
+/*! camera follow (§6.4), HUD and verification wiring. */
+/*! ============================================================================ */
+var K4 = K;
+var $ = (id) => document.getElementById(id);
+var esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+var f2 = (x, d = 2) => Number.isFinite(x) ? x.toFixed(d) : "\u2014";
+/*! --------------------------------------------------------------------------- */
+/*! state */
+/*! --------------------------------------------------------------------------- */
+var state = { t: 0, playing: false, dir: 1, speed: 1, drsTarget: 0, drs: 0, ground: "fade", wire: false, decals: true, gearbox: false, conflicts: false };
+var PLAY_SECONDS = 16;
+var drsOpen = 15.1 * DEG;
+/*! --------------------------------------------------------------------------- */
+/*! renderer / scene */
+/*! --------------------------------------------------------------------------- */
+var canvas = $("c");
+var renderer = new THREE3.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE3.SRGBColorSpace;
+renderer.toneMapping = THREE3.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE3.PCFSoftShadowMap;
+renderer.setClearColor(0, 0);
+var scene = new THREE3.Scene();
+scene.fog = new THREE3.Fog(659748, 14, 42);
+var pmrem = new THREE3.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+var camera = new THREE3.PerspectiveCamera(32, 1, 0.2, 120);
+var controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 0.8;
+controls.maxDistance = 40;
+controls.maxPolarAngle = Math.PI * 0.98;
+var key = new THREE3.DirectionalLight(16777215, 2.4);
+key.position.set(6, 10, 7);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.bias = -4e-4;
+key.shadow.normalBias = 0.015;
+Object.assign(key.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 40 });
+key.target.position.set(0, 0.3, -1.5);
+scene.add(key, key.target);
+var fill = new THREE3.DirectionalLight(9417215, 0.7);
+fill.position.set(-7, 4, -5);
+scene.add(fill);
+scene.add(new THREE3.HemisphereLight(12110079, 1053468, 0.55));
+/*! ground (world frame: contact plane y = -h_F) */
+var GROUND_Y = -K4.hF * 1e-3;
+var grid = new THREE3.GridHelper(40, 80, 4873606, 2503503);
+grid.position.y = GROUND_Y;
+grid.material.transparent = true;
+grid.material.depthWrite = false;
+scene.add(grid);
+var shadowCatcher = new THREE3.Mesh(new THREE3.PlaneGeometry(60, 60), new THREE3.ShadowMaterial({ opacity: 0.38 }));
+shadowCatcher.rotation.x = -Math.PI / 2;
+shadowCatcher.position.y = GROUND_Y + 6e-4;
+shadowCatcher.receiveShadow = true;
+scene.add(shadowCatcher);
+/*! --------------------------------------------------------------------------- */
+/*! materials */
+/*! --------------------------------------------------------------------------- */
+var NAVY = 728907;
+var MAT = {
+  paint: new THREE3.MeshPhysicalMaterial({ color: NAVY, metalness: 0.35, roughness: 0.34, clearcoat: 0.9, clearcoatRoughness: 0.1, envMapIntensity: 0.9 }),
+  carbon: new THREE3.MeshStandardMaterial({ color: 662076, metalness: 0.2, roughness: 0.55, envMapIntensity: 0.7 }),
+  carbonDark: new THREE3.MeshStandardMaterial({ color: 791595, metalness: 0.1, roughness: 0.7 }),
+  tyre: new THREE3.MeshStandardMaterial({ color: 987155, metalness: 0, roughness: 0.92 }),
+  alloy: new THREE3.MeshStandardMaterial({ color: 9212572, metalness: 0.9, roughness: 0.35 }),
+  disc: new THREE3.MeshStandardMaterial({ color: 10132899, metalness: 1, roughness: 0.42 }),
+  caliper: new THREE3.MeshStandardMaterial({ color: 10692141, metalness: 0.2, roughness: 0.4 }),
+  susp: new THREE3.MeshStandardMaterial({ color: 1055802, metalness: 0.3, roughness: 0.45 }),
+  gold: new THREE3.MeshStandardMaterial({ color: 12618268, metalness: 0.9, roughness: 0.38, envMapIntensity: 0.55, side: THREE3.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+  inconel: new THREE3.MeshStandardMaterial({ color: 9077624, metalness: 0.85, roughness: 0.45 }),
+  radiator: new THREE3.MeshStandardMaterial({ color: 7304574, metalness: 0.65, roughness: 0.55 })
+};
+var openMat = /* @__PURE__ */ new Map();
+var materialFor = (key_, open) => {
+  const m = MAT[key_] || MAT.paint;
+  if (!open) return m;
+  if (!openMat.has(key_)) {
+    const c = m.clone();
+    c.side = THREE3.DoubleSide;
+    openMat.set(key_, c);
+  }
+  return openMat.get(key_);
+};
+var HILITE = new THREE3.MeshStandardMaterial({ color: 16722493, emissive: 16711712, emissiveIntensity: 0.8, metalness: 0.1, roughness: 0.4, side: THREE3.DoubleSide });
+/*! --------------------------------------------------------------------------- */
+/*! geometry conversion (mm authored -> metres, creased normals) */
+/*! --------------------------------------------------------------------------- */
+function toGeometry(mesh, crease = 38 * DEG) {
+  const g = new THREE3.BufferGeometry();
+  const pos = new Float32Array(mesh.p.length);
+  for (let i = 0; i < pos.length; i++) pos[i] = mesh.p[i] * 1e-3;
+  g.setAttribute("position", new THREE3.BufferAttribute(pos, 3));
+  g.setIndex(new THREE3.BufferAttribute(new Uint32Array(mesh.i), 1));
+  const out = toCreasedNormals(g, crease);
+  g.dispose();
+  return out;
+}
+/*! --------------------------------------------------------------------------- */
+/*! model */
+/*! --------------------------------------------------------------------------- */
+var model;
+var world;
+var livery;
+var bodyNodes = /* @__PURE__ */ new Map();
+var rakedRoot;
+var liftGroup;
+var flapPivot = null;
+var totalMass = 0;
+var com0W = new THREE3.Vector3();
+function buildScene() {
+  model = buildModel({ withGearbox: true });
+  livery = buildLivery();
+  liftGroup = new THREE3.Group();
+  scene.add(liftGroup);
+  rakedRoot = new THREE3.Group();
+  rakedRoot.matrixAutoUpdate = false;
+  const M = rakeMatrix();
+  M.elements[13] *= 1e-3;
+  M.elements[14] *= 1e-3;
+  rakedRoot.matrix.copy(M);
+  rakedRoot.matrixWorldNeedsUpdate = true;
+  liftGroup.add(rakedRoot);
+  const geomCache = /* @__PURE__ */ new Map();
+  const geomOf = (mesh) => {
+    if (!geomCache.has(mesh)) geomCache.set(mesh, toGeometry(mesh));
+    return geomCache.get(mesh);
+  };
+  const [pz, py] = drsPivot();
+  for (const b of model.bodies) {
+    const wrapper = new THREE3.Group();
+    wrapper.name = b.id;
+    const mirror = new THREE3.Group();
+    if (b.mirror) mirror.scale.x = -1;
+    wrapper.add(mirror);
+    const node = { wrapper, mirror, meshes: [], decals: [], body: b };
+    for (const p of b.parts) {
+      const mesh = new THREE3.Mesh(geomOf(p.mesh), materialFor(p.mat, p.open));
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.name = `${b.id}/${p.name}`;
+      mesh.userData.mat = mesh.material;
+      if (p.drs) {
+        flapPivot = new THREE3.Group();
+        flapPivot.position.set(0, py * 1e-3, pz * 1e-3);
+        mesh.position.set(0, -py * 1e-3, -pz * 1e-3);
+        flapPivot.add(mesh);
+        mirror.add(flapPivot);
+      } else mirror.add(mesh);
+      node.meshes.push(mesh);
+    }
+    for (const d of livery[b.base] || livery[b.id] || []) {
+      const g = b.mirror && d.geomFlip ? d.geomFlip : d.geom;
+      const m = new THREE3.Mesh(g, d.mat);
+      m.renderOrder = 2;
+      m.name = `${b.id}/decal:${d.name}`;
+      mirror.add(m);
+      node.decals.push(m);
+    }
+    rakedRoot.add(wrapper);
+    bodyNodes.set(b.id, node);
+  }
+  /*! optional gearbox proxy (static, §5.9) — hidden by default, not in the brief */
+  for (const e of model.extras) {
+    const wrapper = new THREE3.Group();
+    wrapper.name = e.id;
+    wrapper.visible = false;
+    for (const p of e.parts) {
+      const m = new THREE3.Mesh(geomOf(p.mesh), materialFor(p.mat, false));
+      m.castShadow = m.receiveShadow = true;
+      wrapper.add(m);
+    }
+    rakedRoot.add(wrapper);
+    bodyNodes.set(e.id, { wrapper, mirror: wrapper, meshes: [], decals: [], body: e });
+  }
+  totalMass = model.bodies.reduce((a, b) => a + b.mass, 0);
+  const cB = [0, 0, 0];
+  for (const b of model.bodies) for (let a = 0; a < 3; a++) cB[a] += b.mass * b.com[a] / totalMass;
+  const cp = new THREE3.Vector3(cB[0], cB[1], cB[2]).multiplyScalar(1e-3).applyMatrix4(M);
+  com0W.copy(cp);
+}
+/*! --------------------------------------------------------------------------- */
+/*! kinematics */
+/*! --------------------------------------------------------------------------- */
+var easeOf = (b, t) => b.win ? smoothstep((t - b.win[0]) / (b.win[1] - b.win[0])) : 0;
+var tmpV = new THREE3.Vector3();
+function comAt(t) {
+  const c = com0W.clone();
+  for (const b of model.bodies) {
+    const e = easeOf(b, t);
+    c.x += b.mass * e * b.dW[0] / totalMass;
+    c.y += b.mass * e * b.dW[1] / totalMass;
+    c.z += b.mass * e * b.dW[2] / totalMass;
+  }
+  return c;
+}
+var lastTarget = new THREE3.Vector3();
+function applyT(t, { follow = true } = {}) {
+  state.t = Math.min(1, Math.max(0, t));
+  for (const b of model.bodies) {
+    const e = easeOf(b, state.t);
+    const w = bodyNodes.get(b.id).wrapper;
+    w.position.set(b.dB[0] * e, b.dB[1] * e, b.dB[2] * e);
+  }
+  const eC2 = smoothstep((state.t - 0.8) / 0.2);
+  if (state.ground === "fade") {
+    liftGroup.position.y = 0;
+    grid.material.opacity = 1 - eC2;
+    shadowCatcher.material.opacity = 0.38 * (1 - eC2);
+    grid.visible = eC2 < 0.999;
+  } else {
+    liftGroup.position.y = GROUND_LIFT * eC2;
+    grid.material.opacity = 1;
+    shadowCatcher.material.opacity = 0.38;
+    grid.visible = true;
+  }
+  if (follow) {
+    const c = comAt(state.t);
+    c.y += liftGroup.position.y;
+    const d = c.clone().sub(lastTarget);
+    camera.position.add(d);
+    controls.target.copy(c);
+    lastTarget.copy(c);
+  }
+  updateHud();
+}
+/*! --------------------------------------------------------------------------- */
+/*! HUD */
+/*! --------------------------------------------------------------------------- */
+var STAGES = [["A1", 0, 0.16], ["A2", 0.06, 0.22], ["A3", 0.1, 0.26], ["A4", 0.2, 0.36], ["A5", 0.26, 0.42], ["B1", 0.44, 0.62], ["C1", 0.64, 0.78], ["C2", 0.8, 1]];
+function buildHud() {
+  $("hud").innerHTML = `
+  <div class="title"><b>RB7</b> \xB7 2011 \xB7 exploded parametric CAD<small>metres \xB7 frame W/B \xB7 raked root \xB7 smoothstep teardown A1\u2192C2</small></div>
+  <div class="right">
+    <button id="badge" class="badge pending" title="Open verification report">\xA78 verification \u2014 running\u2026</button>
+    <div class="panel">
+      <label><input type="checkbox" id="optDrs"> DRS flap open <span class="muted" id="drsDeg"></span></label>
+      <label>Ground
+        <select id="optGround"><option value="fade">fade grid by e(s<sub>C2</sub>)</option><option value="lift">lift root \u039B = 1.20 m</option></select></label>
+      <label><input type="checkbox" id="optDecals" checked> livery decals</label>
+      <label><input type="checkbox" id="optWire"> wireframe</label>
+      <label><input type="checkbox" id="optGear"> gearbox proxy (optional, static)</label>
+      <label><input type="checkbox" id="optHot"> highlight conflicts</label>
+      <div class="views"><button id="btnFrame" title="Fit every body in view (F)">\u2922 frame</button><button data-view="iso">3/4</button><button data-view="side">+x side</button><button data-view="sideR">\u2212x side</button><button data-view="top">top</button><button data-view="front">front</button><button data-view="rear">rear</button></div>
+    </div>
+  </div>
+  <div class="bar">
+    <div class="row">
+      <button id="btnReset" title="Assembled (t=0)">\u23EE</button>
+      <button id="btnPlay" class="primary" title="Play / pause (Space)">\u25B6 explode</button>
+      <button id="btnDir" title="Toggle direction (R)">\u21C4</button>
+      <input id="slider" type="range" min="0" max="1000" value="0" step="1">
+      <span class="tval" id="tVal">t = 0.000</span>
+      <select id="optSpeed"><option value="0.5">0.5\xD7</option><option value="1" selected>1\xD7</option><option value="2">2\xD7</option></select>
+    </div>
+    <div class="stages" id="stages">${STAGES.map(([n, a, b]) => `<span class="stage" data-a="${a}" data-b="${b}" style="left:${a * 100}%;width:${(b - a) * 100}%"><i>${n}</i></span>`).join("")}</div>
+  </div>
+  <div id="loading"><div><div class="spin"></div>Building parametric model\u2026</div></div>
+  <aside id="report" class="report hidden"></aside>`;
+}
+function updateHud() {
+  $("slider").value = Math.round(state.t * 1e3);
+  $("tVal").textContent = "t = " + state.t.toFixed(3);
+  for (const el of document.querySelectorAll(".stage")) {
+    const a = +el.dataset.a, b = +el.dataset.b;
+    el.classList.toggle("on", state.t > a && state.t < b);
+    el.classList.toggle("done", state.t >= b);
+  }
+  $("btnPlay").textContent = state.playing ? "\u275A\u275A pause" : state.dir > 0 ? "\u25B6 explode" : "\u25C0 assemble";
+}
+var VIEWS = { iso: [4.6, 2.9, 6.4], side: [8.5, 1.3, 1e-3], sideR: [-8.5, 1.3, 1e-3], top: [1e-3, 9.5, 1e-3], front: [0, 1.6, 8.5], rear: [0, 1.8, -8.5], isoR: [-4.6, 2.9, -6.4] };
+function frameAll() {
+  const box = new THREE3.Box3();
+  box.setFromObject(rakedRoot);
+  const c = box.getCenter(new THREE3.Vector3()), r = box.getSize(new THREE3.Vector3()).length() / 2;
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const dist = r / Math.sin(THREE3.MathUtils.degToRad(camera.fov / 2)) * 0.62;
+  controls.target.copy(c);
+  lastTarget.copy(c);
+  camera.position.copy(c).addScaledVector(dir, Math.max(4, dist));
+  controls.update();
+}
+function setView(name) {
+  const o = VIEWS[name], c = controls.target;
+  camera.position.set(c.x + o[0], c.y + o[1], c.z + o[2]);
+  controls.update();
+}
+/*! --------------------------------------------------------------------------- */
+/*! verification report */
+/*! --------------------------------------------------------------------------- */
+var V = { asserts: [], named: [], parts: [], sweep: null, reg: [], conflicts: [], done: false, timing: {} };
+function setBadge(cls, text) {
+  const b = $("badge");
+  b.className = "badge " + cls;
+  b.textContent = text;
+  document.title = (cls === "fail" ? "\u26A0 " : "") + "RB7 2011 \u2014 exploded parametric CAD";
+}
+function logAsserts() {
+  console.groupCollapsed("%cRB7 \xA78 verification", "font-weight:700");
+  for (const r of V.asserts) console.log(`%c${r.pass ? "\u2714 PASS" : "\u2718 FAIL"}%c ${r.id} ${r.title}
+      ${r.detail}`, `color:${r.pass ? "#3fb950" : "#ff4d4f"};font-weight:700`, "color:inherit");
+  console.groupEnd();
+}
+function computeConflicts() {
+  const raw = [];
+  for (const r of V.asserts) if (!r.pass) raw.push({ kind: r.specConflict ? "spec conflict" : "assert", text: `${r.id}: ${r.title}`, detail: r.detail, bodies: [] });
+  for (const r of V.reg) if (!r.pass) raw.push({ kind: "envelope", text: `${r.id} [${r.tag}] ${r.text}`, detail: r.val, bodies: [] });
+  for (const r of V.named) if (r.kind === "min" && Number.isFinite(r.measured) && r.measured < r.expected - 1) raw.push({ kind: "clearance", text: `${r.label}`, detail: `measured ${f2(r.measured)} mm vs spec ${r.expected} mm${r.measured < 2 ? " \u2014 UNDER 2 mm: stop and flag, hardpoints NOT moved" : ""}${r.note ? " \xB7 " + r.note : ""}`, bodies: [] });
+  if (V.sweep) {
+    for (const r of V.sweep.results) if (r.unexplained) {
+      const ps = [...new Set(r.violations.map((v) => `${v.a} \u2715 ${v.b}`))];
+      const maxDisp = Math.max(...r.violations.map((v) => v.disp));
+      raw.push({ kind: "interference", text: `${r.a} \u2715 ${r.b}`, detail: `parts: ${ps.join("; ")} \xB7 touching at t=${f2(r.contacts[0].t, 3)}\u2026${f2(r.contacts[r.contacts.length - 1].t, 3)} (relative travel while touching \u2264 ${f2(maxDisp, 1)} mm)`, bodies: [r.a, r.b] });
+    }
+  }
+  for (const r of V.parts) if (r.d > 1e-3 && r.d < 2) raw.push({ kind: "near-miss", text: `${r.a}/${r.pa} \u2194 ${r.b}/${r.pb}`, detail: `static clearance ${f2(r.d)} mm (< 2 mm: stop and flag; hardpoints NOT moved)`, bodies: [r.a, r.b] });
+  /*! collapse mirrored _xn / fxn / rxn duplicates into their _xp twin */
+  const hasXn = (s) => /xn(?![a-z])/.test(s), hasXp = (s) => /xp(?![a-z])/.test(s), toXp = (s) => s.replace(/xn(?![a-z])/g, "xp");
+  const out = [], seen = /* @__PURE__ */ new Map();
+  for (const c of raw) {
+    const key2 = c.kind + "|" + toXp(c.text);
+    if (hasXn(c.text) && !hasXp(c.text) && seen.has(key2)) {
+      const s = seen.get(key2);
+      s.detail += " \xB7 mirrored on the _xn side";
+      s.bodies = [.../* @__PURE__ */ new Set([...s.bodies, ...c.bodies])];
+      continue;
+    }
+    seen.set(key2, c);
+    out.push(c);
+  }
+  return out;
+}
+function tag(t) {
+  return `<span class="tag ${t.replace(/[^A-Z]/g, "")}">${t}</span>`;
+}
+function renderReport() {
+  const ok = V.asserts.filter((r) => r.pass).length, bad = V.asserts.length - ok;
+  const sw = V.sweep;
+  const conflicts = V.conflicts;
+  const rows = (arr) => arr.join("");
+  const assertRows = V.asserts.map((r) => `<tr class="${r.pass ? "ok" : "bad"}"><td>${r.pass ? "\u2714" : "\u2718"}</td><td><b>${r.id}</b></td><td>${esc(r.title)}<div class="d">${esc(r.detail)}${r.lines ? "<br>" + r.lines.map(esc).join("<br>") : ""}</div></td></tr>`);
+  const namedRows = V.named.map((r) => {
+    const d = Number.isFinite(r.measured) ? r.measured - r.expected : NaN;
+    const cls = !Number.isFinite(r.measured) ? "ok" : r.measured < 2 ? "bad" : r.measured < r.expected - 1 ? "warn" : "ok";
+    return `<tr class="${cls}"><td>${esc(r.label)}${r.note ? `<div class="d">${esc(r.note)}</div>` : ""}</td><td class="n">${r.expected}</td><td class="n">${Number.isFinite(r.measured) ? f2(r.measured) : "> 400"}</td><td class="n">${Number.isFinite(d) ? (d >= 0 ? "+" : "") + f2(d, 1) : "\u2014"}</td><td class="n">${r.at === null ? "" : f2(r.at, 3)}</td></tr>`;
+  });
+  const sweepSmall = sw ? sw.results.filter((r) => r.contacts.length || r.min <= sw.report).sort((a, b) => a.min - b.min) : [];
+  const sweepRows = sweepSmall.map((r) => {
+    const cls = r.unexplained ? "bad" : r.contacts.length ? "designed" : r.min < 5 ? "warn" : "ok";
+    const tt = r.contacts.length ? `contact t = ${f2(r.contacts[0].t, 3)}\u2026${f2(r.contacts[r.contacts.length - 1].t, 3)}` : `at t = ${r.tMin === null ? "\u2014" : f2(r.tMin, 3)}`;
+    return `<tr class="${cls}"><td>${esc(r.a)} <span class="muted">\xD7</span> ${esc(r.b)}</td><td class="n">${r.min <= 1e-3 ? "0 (touch/intersect)" : f2(r.min)}</td><td>${tt}</td><td>${r.unexplained ? "UNEXPLAINED: " + esc([...new Set(r.violations.map((v) => v.a + " \u2715 " + v.b))].join("; ")) : r.designed ? "designed: " + esc(r.designed) : ""}</td></tr>`;
+  });
+  const designedSet = (r) => DESIGNED_CONTACT.some((d) => (r.a.startsWith(d.a) && r.b.startsWith(d.b) || r.a.startsWith(d.b) && r.b.startsWith(d.a)) && d.parts.some(([x, y]) => new RegExp("^" + x.replace("*", ".*") + "$").test(r.pa) && new RegExp("^" + y.replace("*", ".*") + "$").test(r.pb) || new RegExp("^" + x.replace("*", ".*") + "$").test(r.pb) && new RegExp("^" + y.replace("*", ".*") + "$").test(r.pa)));
+  const partRows = V.parts.filter((r) => {
+    const s = r.a + " " + r.b;
+    return !(/xn(?![a-z])/.test(s) && !/xp(?![a-z])/.test(s));
+  }).map((r) => {
+    const cls = r.d <= 1e-3 ? designedSet(r) ? "designed" : "bad" : r.d < 2 ? "bad" : "warn";
+    return `<tr class="${cls}"><td>${esc(r.a)}/${esc(r.pa)} <span class="muted">\xD7</span> ${esc(r.b)}/${esc(r.pb)}</td><td class="n">${r.d <= 1e-3 ? "0 (touch/intersect)" : f2(r.d)}</td><td>${r.d <= 1e-3 ? designedSet(r) ? "designed contact" : "UNEXPLAINED" : r.d < 2 ? "under 2 mm" : ""}</td></tr>`;
+  });
+  const regRows = V.reg.map((r) => `<tr class="${r.pass ? "ok" : "bad"}"><td>${r.pass ? "\u2714" : "\u2718"}</td><td><b>${r.id}</b> ${tag(r.tag)}</td><td>${esc(r.text)}<div class="d">${esc(r.val)}</div></td></tr>`);
+  const confRows = conflicts.map((c, i) => `<tr class="bad" data-conf="${i}"><td><span class="tag KIND">${esc(c.kind)}</span></td><td><b>${esc(c.text)}</b><div class="d">${esc(c.detail)}</div></td></tr>`);
+  const prov = [
+    ["R14", "FW bodywork 75 \u2264 y \u2264 275 outboard of the central 500", "REG-RECALL"],
+    ["R15", "RW box 730 \u2264 y \u2264 950, |x| \u2264 375", "REG-RECALL"],
+    ["R16", "DRS slot gap 10\u201315 closed / \u2264 50 open", "REG-RECALL"],
+    ["R17", "floor |x| \u2264 700 between the axles", "REG-RECALL"],
+    ["R18", "brake disc \xD8 \u2264 278, thickness \u2264 28", "REG-RECALL"],
+    ["R19", "nose \u2265 9 000 mm\xB2 50 mm behind the tip", "REG-RECALL"],
+    ["R20", "mass \u2265 640 kg incl. driver; axle minimums 291 / 342 kg", "REG-RECALL"],
+    ["R6 (plank 300\xD710, holes \xD850 \xD76, \u03C1)", "hole count/diameter recalled; positions [EST]", "REG-RECALL"],
+    ["R15 endplate/beam below 730", "extension below 730 and beam-wing window", "EST / REG-RECALL"],
+    ["R1 (tyres incl. in 1800 limit)", "camber option only; default \u03B3=0", "REG-RECALL"]
+  ].map(([a, b, c]) => `<tr><td><b>${esc(a)}</b></td><td>${esc(b)}</td><td>${tag(c)}</td></tr>`);
+  const notes = NOTES.map((n) => `<tr><td><b>${esc(n.id)}</b></td><td>${esc(n.where)}</td><td>${esc(n.text)}</td></tr>`);
+  const designed = DESIGNED_CONTACT.map((d) => `<tr><td>${esc(d.a)} \xD7 ${esc(d.b)}</td><td>${esc(d.parts.map((p) => p.join(" ~ ")).join(", "))}</td><td>${esc(d.why)}</td></tr>`);
+  $("report").innerHTML = `
+    <header><b>\xA78 verification report</b><button id="repClose" title="Close (Esc)">\xD7</button></header>
+    <div class="sum ${bad || conflicts.length ? "bad" : "ok"}">
+      ${ok}/${V.asserts.length} asserts pass \xB7 ${bad} fail \xB7 pairwise sweep: ${sw ? `${sw.pairs.length} pairs \xD7 201 samples, intervals between samples certified by the Lipschitz bound (${sw.queries} BVH queries, ${(sw.elapsed / 1e3).toFixed(1)} s CPU)` : "running"} \xB7
+      ${conflicts.length} flagged item${conflicts.length === 1 ? "" : "s"} (none silently fixed)
+    </div>
+    <h4>Flagged \u2014 spec values that conflict or fall short</h4><table class="t">${confRows.join("") || "<tr><td>none</td></tr>"}</table>
+    <h4>\xA78 asserts</h4><table class="t">${rows(assertRows)}</table>
+    <h4>\xA78.9 expected minimum clearances \u2014 measured, not assumed (mm)</h4>
+    <table class="t"><tr><th>pair</th><th>spec</th><th>measured</th><th>\u0394</th><th>t</th></tr>${rows(namedRows)}</table>
+    <h4>\xA78.9 body-pair sweep \u2014 pairs in contact or \u2264 ${sw ? sw.report : 15} mm (t = 0\u20261, step 0.005, certified between samples)</h4>
+    <table class="t"><tr><th>pair</th><th>min (mm)</th><th>when</th><th>status</th></tr>${rows(sweepRows)}</table>
+    <h4>Static part-level scan at t = 0 \u2014 part pairs within 5 mm (_xn bodies mirror _xp)</h4>
+    <table class="t"><tr><th>part pair</th><th>distance (mm)</th><th>status</th></tr>${rows(partRows)}</table>
+    <h4>Designed-contact allow-list (my interpretation, not in the spec)</h4><table class="t">${rows(designed)}</table>
+    <h4>Regulatory envelope (informational)</h4><table class="t">${rows(regRows)}</table>
+    <h4>Provisional values (not verified against the FIA text)</h4><table class="t">${rows(prov)}</table>
+    <h4>Interpretation log</h4><table class="t">${rows(notes)}</table>`;
+  $("repClose").onclick = () => $("report").classList.add("hidden");
+  for (const tr of document.querySelectorAll("#report tr[data-conf]")) tr.onclick = () => {
+    const c = conflicts[+tr.dataset.conf];
+    highlight(c.bodies);
+  };
+}
+function highlight(ids, ms = 4e3) {
+  for (const n of bodyNodes.values()) for (const m of n.meshes) m.material = m.userData.mat;
+  if (!ids || !ids.length) return;
+  for (const id of ids) {
+    const n = bodyNodes.get(id);
+    if (n) for (const m of n.meshes) m.material = HILITE;
+  }
+  if (ms) setTimeout(() => {
+    if (!state.conflicts) for (const n of bodyNodes.values()) for (const m of n.meshes) m.material = m.userData.mat;
+  }, ms);
+}
+/*! --------------------------------------------------------------------------- */
+/*! verification pipeline */
+/*! --------------------------------------------------------------------------- */
+var sweep = null;
+function runVerification() {
+  let t0 = performance.now();
+  world = buildWorld(model);
+  V.timing.world = performance.now() - t0;
+  t0 = performance.now();
+  V.asserts = runAsserts(model, world);
+  V.timing.asserts = performance.now() - t0;
+  const a7 = V.asserts.find((r) => r.id === "A7");
+  if (a7 && a7.dOpen) drsOpen = a7.dOpen;
+  $("drsDeg").textContent = `(\u03B4 = ${(drsOpen / DEG).toFixed(2)}\xB0)`;
+  V.reg = regChecks(model);
+  logAsserts();
+  const bad = V.asserts.filter((r) => !r.pass).length;
+  setBadge(bad ? "fail" : "pass", `\xA78: ${V.asserts.length - bad}/${V.asserts.length} asserts \xB7 sweep 0 %`);
+  renderReport();
+  /*! named clearances next tick, then the sweep in time slices */
+  setTimeout(() => {
+    const tn = performance.now();
+    V.named = namedClearances(world);
+    V.timing.named = performance.now() - tn;
+    V.parts = partScan(world, 5);
+    console.groupCollapsed("%cRB7 \xA78.9 expected minima vs measured", "font-weight:700");
+    for (const r of V.named) console.log(`${r.label}: spec ${r.expected} mm, measured ${Number.isFinite(r.measured) ? r.measured.toFixed(2) : ">400"} mm`);
+    console.groupEnd();
+    renderReport();
+    sweep = new PairSweep(world, { step: 5e-3, thr: 15, report: 15 });
+    V.sweep = sweep;
+  }, 30);
+}
+function stepSweep() {
+  if (!sweep || sweep.done) return;
+  sweep.run(12);
+  const pct = Math.round(sweep.progress * 100);
+  const bad = V.asserts.filter((r) => !r.pass).length;
+  if (sweep.done) {
+    V.conflicts = computeConflicts();
+    const nI = V.conflicts.filter((c) => c.kind === "interference").length;
+    setBadge(bad || V.conflicts.length ? "fail" : "pass", `\xA78: ${V.asserts.length - bad}/${V.asserts.length} asserts \xB7 ${V.conflicts.length} flagged (${nI} interferences)`);
+    console.groupCollapsed("%cRB7 \xA78.9 pairwise sweep", "font-weight:700;color:" + (V.conflicts.length ? "#ff4d4f" : "#3fb950"));
+    console.log(`${sweep.pairs.length} pairs, ${sweep.queries} BVH queries, ${(sweep.elapsed / 1e3).toFixed(1)} s`);
+    console.log("timing ms", JSON.stringify(V.timing));
+    for (const c of V.conflicts) console.log(`%c${c.kind.toUpperCase()}%c ${c.text} \u2014 ${c.detail}`, "color:#ff4d4f;font-weight:700", "color:inherit");
+    console.groupEnd();
+    renderReport();
+  } else setBadge(bad ? "fail" : "pass", `\xA78: ${V.asserts.length - bad}/${V.asserts.length} asserts \xB7 sweep ${pct} %`);
+}
+/*! --------------------------------------------------------------------------- */
+/*! controls wiring */
+/*! --------------------------------------------------------------------------- */
+function wire() {
+  $("slider").addEventListener("input", (e) => {
+    state.playing = false;
+    applyT(+e.target.value / 1e3);
+  });
+  $("btnPlay").onclick = () => {
+    if (!state.playing && (state.dir > 0 && state.t >= 1 || state.dir < 0 && state.t <= 0)) state.dir *= -1;
+    state.playing = !state.playing;
+    updateHud();
+  };
+  $("btnDir").onclick = () => {
+    state.dir *= -1;
+    updateHud();
+  };
+  $("btnReset").onclick = () => {
+    state.playing = false;
+    state.dir = 1;
+    applyT(0);
+  };
+  $("optSpeed").onchange = (e) => {
+    state.speed = +e.target.value;
+  };
+  $("optDrs").onchange = (e) => {
+    state.drsTarget = e.target.checked ? 1 : 0;
+  };
+  $("optGround").onchange = (e) => {
+    state.ground = e.target.value;
+    applyT(state.t);
+  };
+  $("optDecals").onchange = (e) => {
+    state.decals = e.target.checked;
+    for (const n of bodyNodes.values()) for (const m of n.decals) m.visible = state.decals;
+  };
+  $("optWire").onchange = (e) => {
+    state.wire = e.target.checked;
+    for (const m of [...Object.values(MAT), ...openMat.values()]) m.wireframe = state.wire;
+  };
+  $("optGear").onchange = (e) => {
+    const n = bodyNodes.get("gearbox_proxy");
+    if (n) n.wrapper.visible = e.target.checked;
+  };
+  $("optHot").onchange = (e) => {
+    state.conflicts = e.target.checked;
+    if (e.target.checked) highlight([...new Set(V.conflicts.flatMap((c) => c.bodies))], 0);
+    else highlight([], 0);
+  };
+  for (const b of document.querySelectorAll("[data-view]")) b.onclick = () => setView(b.dataset.view);
+  $("btnFrame").onclick = frameAll;
+  $("badge").onclick = () => {
+    $("report").classList.toggle("hidden");
+  };
+  addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    if (e.code === "Space") {
+      e.preventDefault();
+      $("btnPlay").click();
+    } else if (e.key === "r" || e.key === "R") $("btnDir").click();
+    else if (e.key === "d" || e.key === "D") {
+      $("optDrs").checked = !$("optDrs").checked;
+      state.drsTarget = $("optDrs").checked ? 1 : 0;
+    } else if (e.key === "f" || e.key === "F") frameAll();
+    else if (e.key === "Escape") $("report").classList.add("hidden");
+  });
+}
+/*! --------------------------------------------------------------------------- */
+/*! main loop */
+/*! --------------------------------------------------------------------------- */
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+var prev = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - prev) / 1e3);
+  prev = now;
+  if (state.playing) {
+    let t = state.t + state.dir * dt * state.speed / PLAY_SECONDS;
+    if (t >= 1) {
+      t = 1;
+      state.playing = false;
+    } else if (t <= 0) {
+      t = 0;
+      state.playing = false;
+    }
+    applyT(t);
+  }
+  /*! DRS secondary animation (independent of the explosion): exponential approach, rotation R_x(-delta) about the flap pivot */
+  const k = 1 - Math.exp(-dt * 6);
+  state.drs += (state.drsTarget - state.drs) * k;
+  if (Math.abs(state.drs - state.drsTarget) < 1e-4) state.drs = state.drsTarget;
+  if (flapPivot) flapPivot.rotation.x = -state.drs * drsOpen;
+  stepSweep();
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+async function start() {
+  buildHud();
+  const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
+  await nextFrame();
+  await nextFrame();
+  resize();
+  addEventListener("resize", resize);
+  const tb = performance.now();
+  buildScene();
+  V.timing.scene = performance.now() - tb;
+  wire();
+  controls.target.copy(comAt(0));
+  lastTarget.copy(controls.target);
+  const o = VIEWS.iso;
+  camera.position.set(controls.target.x + o[0], controls.target.y + o[1], controls.target.z + o[2]);
+  applyT(0, { follow: false });
+  $("loading").classList.add("hidden");
+  runVerification();
+  requestAnimationFrame(frame);
+  window.RB7 = { state, applyT, model, get world() {
+    return world;
+  }, V, scene, camera, controls, bodyNodes, setView, highlight, frameAll, THREE: THREE3 };
+}
+
+// build_src/main.mjs
+start().catch((e) => {
+  console.error(e);
+  const l = document.getElementById("loading");
+  if (l) l.innerHTML = '<div style="color:#ff4d4f;max-width:520px">Startup failed: ' + String(e && e.message || e) + "</div>";
+});
+
+</script>
+</body>
+</html>
